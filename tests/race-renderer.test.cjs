@@ -22,7 +22,20 @@ test('wheel gauge, contact and rods preserve actual wheel rolling',()=>{const b=
 
 
 
-test('boosting brightens pooled exhaust for both engines and bus never emits funnel steam',()=>{for(const opponent of ['james','bertie']){const b=View.makeScene(Core,'country',opponent),r=race('country',opponent,10000);View.updateScene(b,r);const base=b.steam.bubbles[0].material.opacity;r.player.boostRemaining=r.rival.boostRemaining=6;r.player.boostActive=r.rival.boostActive=true;View.updateScene(b,r);assert.ok(b.steam.bubbles[0].material.opacity>base);if(opponent==='james')assert.ok(b.rivalSteam.bubbles[0].material.opacity>base);else assert.ok(b.rivalSteam.bubbles.every(m=>!m.visible));assert.equal(all(b.scene,'pickup-collection-flash').length,0);View.disposeScene(b);}});
+test('engines emit ordinary exhaust at top speed and the bus emits no steam',()=>{
+ for(const opponent of ['james','bertie']){
+  const b=View.makeScene(Core,'country',opponent),r=race('country',opponent,10000);
+  View.updateScene(b,r);
+  const opacity=b.steam.bubbles[0].material.opacity;
+  r.player.velocity=r.rival.velocity=1250;
+  View.updateScene(b,r);
+  assert.equal(b.steam.bubbles[0].material.opacity,opacity);
+  assert.ok(b.steam.bubbles.some(puff=>puff.visible));
+  assert.equal(b.rivalSteam.bubbles.some(puff=>puff.visible),opponent==='james');
+  assert.equal(all(b.scene,'pickup-collection-flash').length,0);
+  View.disposeScene(b);
+ }
+});
 test('stable camera frames engines and coaches at laptop and portrait/landscape phone sizes',()=>{for(const course of Object.keys(Core.COURSES))for(const opponent of ['percy','james','bertie']){const b=View.makeScene(Core,course,opponent),r=race(course,opponent);for(const aspect of [310/330,516/145,604/166,752/192,320/420,375/420,1400/800])for(const d of [8000,18000,31000,48000,62000,74000,82000,94000,105000,114000,129000].map(Core.courseDistance)){b.camera.aspect=aspect;pose(r,d);View.updateScene(b,r);for(const obj of [b.player,b.rival,b.playerCoach,b.rivalCoach]){if(!obj.visible)continue;const box=bounds(b,obj);assert.ok(box.minX>=-1&&box.maxX<=1&&box.minY>=-1&&box.maxY<=1,`${course}/${opponent}/${aspect}/${d}/${obj.name}: ${JSON.stringify(box)}`);}assert.deepEqual(b.camera.up.toArray(),[0,1,0]);}View.disposeScene(b);}});
 
 

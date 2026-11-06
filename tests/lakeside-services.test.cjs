@@ -71,12 +71,12 @@ test('small branches stay under Harold on a supporting sling, touch down before 
  }
 });
 
-test('both racers get the same branch work duration and early input cannot skip the lift or duplicate its boost',()=>{
+test('both racers get the same branch work duration and early input cannot skip the lift or complete the job twice',()=>{
  for(const pair of [['harold','bertie'],['bulgy','harold'],['thomas','percy']]){
   const r=R.createRace({playerId:pair[0],opponentId:pair[1],seed:2,deliveryTheme:'passengers'});r.phase='racing';r.countdown=0;
   for(const who of ['player','rival']){const v=r[who],s=v.serviceStates.find(s=>s.type==='tree');v.serviceStates.forEach(x=>{if(x.at<s.at)x.completed=true;});v.distance=s.at;v.velocity=0;v.service=s;s.phase='ready';}
   assert.equal(R.serviceAction(r),true);assert.equal(R.serviceAction(r),false);const s=r.player.service,seconds=pair.includes('harold')?12:5;assert.equal(s.duration,seconds);
   R.step(r,seconds-.1);assert.equal(s.completed,false);assert.equal(r.rival.service.duration,seconds);R.step(r,.1);assert.equal(s.completed,true);
-  assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);R.serviceAction(r);R.step(r,2);assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);
+  assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);R.serviceAction(r);R.step(r,2);assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);
  }
 });

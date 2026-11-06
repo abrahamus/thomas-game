@@ -24,26 +24,27 @@ function enterJob({who='player',type='wash',seed,other='thomas'}={}){
 }
 function act(r){const s=r.player.service;if(s?.phase==='ready'){if(s.type==='wash')R.cleanMud(r,r.player.mudPatches.findIndex(Boolean));else R.serviceAction(r);}}
 
-test('cargo stops hold both racers for equal checks, keep boosts queued, and cannot be skipped',()=>{
+test('cargo stops hold both racers for equal checks, and cannot be skipped',()=>{
  for(const who of ['player','rival'])for(const type of ['wash','coal','repairs','rocks','water','tree']){
   const r=enterJob({who,type}),v=r.player,s=v.service,at=v.distance;
   assert.equal(s.phase,'cargo-lowering');assert.equal(r.rival.service.phase,'cargo-lowering');
-  v.boostRemaining=12;
   const stopped=JSON.stringify(r);for(let i=0;i<12;i++){assert.equal(R.serviceAction(r),false);assert.equal(R.cleanMud(r,0),false);assert.equal(R.whistle(r),false);}
   assert.equal(JSON.stringify(r),stopped,'early inputs do not advance handling');
-  R.step(r,4.5);assert.equal(s.phase,'cargo-lowering');assert.equal(v.distance,at);assert.equal(v.boostRemaining,12);
+  R.step(r,4.5);assert.equal(s.phase,'cargo-lowering');assert.equal(v.distance,at);
   R.step(r,.5);assert.equal(s.phase,'ready');assert.equal(r.rival.service.phase,'ready');
   assert.equal(R.getView(r).helpEnabled,true);
   for(let n=0;s.phase!=='cargo-lifting';n++){assert.ok(n<1800);act(r);R.step(r,1/120);}
-  assert.equal(s.workComplete,true);assert.equal(s.completed,false);assert.equal(v.distance,at);assert.equal(v.boostRemaining,12);
+  assert.equal(s.workComplete,true);assert.equal(s.completed,false);assert.equal(v.distance,at);
   assert.equal(R.getView(r).helpEnabled,false);assert.match(R.getView(r).taskKey,/cargo-lifting$/);
   assert.equal(R.serviceAction(r),false);assert.equal(R.cleanMud(r,0),false);
   R.step(r,4.5);assert.equal(s.completed,false);assert.equal(v.distance,at);assert.equal(v.velocity,0);
-  R.step(r,.5);assert.equal(s.completed,true);assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);assert.equal(v.boostRemaining,18);
+  R.step(r,.5);assert.equal(s.completed,true);assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);
+  R.step(r,.5);assert.equal(v.distance,at);
+  assert.equal(R.adjustSpeed(r,1),true);
   const before=R.getFlightPose(r,who);R.step(r,1/120);const after=R.getFlightPose(r,who);
-  assert.ok(v.velocity<=R.ACCELERATION/60,'departure uses ordinary acceleration');
+  assert.ok(v.velocity>0&&v.velocity<=R.ACCELERATION/60,'departure uses ordinary acceleration');
   if(who==='player')assert.ok(Math.hypot(after.x-before.x,after.y-before.y,after.z-before.z)<.001,'no departure teleport');
-  R.step(r,2);assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);
+  R.step(r,2);assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);
  }
 });
 

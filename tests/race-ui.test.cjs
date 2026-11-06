@@ -2,7 +2,7 @@
 // Standalone adapter/input checks using a DOM simulation, without executing WebGL.
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {setup,html,script}=require('./helpers/game-harness.cjs');
+const {setup,html,script,accelerateTo}=require('./helpers/game-harness.cjs');
 const KEY='thomas-first-adventure-progress-v1';
 const node=(ui,id)=>ui.document.getElementById(id);
 function start(ui,keyboard=false){
@@ -12,6 +12,7 @@ function start(ui,keyboard=false){
 function go(ui){ui.frames(4.7,47);assert.equal(ui.state().phase,'racing');}
 function performVisibleJob(ui,keyboard){
  const help=node(ui,'action-race-help'),service=ui.state().race.player.service;
+ accelerateTo(ui,keyboard);
  if(!help.hidden && !help.disabled){keyboard?ui.key('Enter'):ui.click('#action-race-help');return true;}
  if(service?.type==='animals' && service.phase==='ready'){
   keyboard?ui.key(' '):ui.click('#action-whistle');return true;
@@ -42,7 +43,7 @@ for(const [rival,seed] of [['percy',17],['james',1000],['bertie',1500]])test(`na
 });
 
 for(const keyboard of [true,false])test(`complete muted ${keyboard?'keyboard-only':'click-only'} round from visible pictures and award once`,()=>{
- const ui=setup();ui.evaluate("dispatchAction('mute')");start(ui,keyboard);
+ const ui=setup();ui.evaluate("dispatchAction('mute')");start(ui,keyboard);go(ui);
  const result=complete(ui,keyboard);
  assert.equal(result.race.winner,'player');
  const duration=result.race.elapsed+ui.evaluate('ThomasRaceCore.START_COUNTDOWN');
@@ -69,8 +70,8 @@ test('saved pairing varies new races without erasing legacy rewards; invalid sto
  const restored=setup(ui.storage.getItem(KEY));start(restored,'surprise');assert.notEqual(restored.state().race.courseId,ui.state().race.courseId);
  for(const options of [{unavailableStorage:true},{saved:'broken'}]){const fallback=setup(options.saved,options);start(fallback);complete(fallback);assert.equal(fallback.state().stars,3);}
 });
-test('pause, focus loss and hidden pages freeze boosts and both racers until explicit resume',()=>{
- const ui=setup();start(ui);go(ui);ui.frames(3);ui.evaluate('state.race.player.boostRemaining=6');
+test('pause, focus loss and hidden pages freeze both racers until explicit resume',()=>{
+ const ui=setup();start(ui);go(ui);ui.key('ArrowUp');ui.frames(3);
  ui.key('Escape');const stopped=ui.state().race;ui.frames(10);assert.deepEqual(ui.state().race,stopped);
  ui.click('#pauseOverlay [data-action="resume"]');ui.frames(.2,5);assert.ok(ui.state().distance>stopped.player.distance);
  ui.windowListeners.get('blur')();const blurred=ui.state().race;ui.frames(10);assert.deepEqual(ui.state().race,blurred);
@@ -79,7 +80,7 @@ test('pause, focus loss and hidden pages freeze boosts and both racers until exp
  ui.document.hidden=false;ui.document.emit('visibilitychange');assert.equal(ui.state().paused,true);
 });
 test('a long frame stops at the next interactive job without completing it or replaying rewards',()=>{
- const ui=setup();start(ui);go(ui);
+ const ui=setup();start(ui);go(ui);accelerateTo(ui,true,100);
  ui.evaluate('globalThis.recentEffects=[];globalThis.originalEffect=audio.effect.bind(audio);audio.effect=(...args)=>{recentEffects.push(args);return originalEffect(...args);};');
  const spoken=ui.spoken.length;ui.frames(120,1/120);
  assert.equal(ui.state().phase,'racing');assert.ok(ui.state().race.player.service);assert.equal(ui.state().velocity,0);assert.equal(ui.state().stars,0);
@@ -201,12 +202,99 @@ test('jobs use the bottom action without a top dashboard or toolbar',()=>{
  ui.document.querySelector('#pauseOverlay [data-action="resume"]').focus();ui.key(' ');assert.equal(ui.state().paused,false);
 });
 
-test('Race has no postal controls and arrows do not change speed or queue actions',()=>{
+test('Race has no postal controls and horizontal arrows do not queue actions',()=>{
  const ui=setup();start(ui);go(ui);
  for(const id of ['action-race-left','action-race-right','raceUpcomingPreview','raceMailCollected','raceJobsCompleted','raceCarriedLoad'])assert.equal(node(ui,id),null);
  const before=ui.state().race.player;ui.key('ArrowLeft');ui.key('ArrowRight');assert.deepEqual(ui.state().race.player,before);
- assert.equal(node(ui,'action-accelerate'),null);
- assert.match(script('race-core'),/boost-earned/);
+});
+test('keyboard and on-screen Up take one step per press, with no Down control',()=>{
+ const ui=setup();start(ui);
+ const up=node(ui,'action-accelerate');
+ const speed=()=>ui.state().race.player.speedPercent;
+ assert.equal(node(ui,'action-slow-down'),null);
+ assert.equal(up.disabled,true);
+ ui.key('ArrowUp');assert.equal(speed(),0);
+ go(ui);assert.equal(up.disabled,false);
+ assert.equal(ui.state().race.player.distance,0);
+ ui.key('ArrowUp');assert.equal(speed(),25);
+ ui.key('ArrowUp',{repeat:true});assert.equal(speed(),25);
+ ui.click('#action-accelerate');assert.equal(speed(),50);
+ ui.key('ArrowDown');assert.equal(speed(),50);
+ ui.key('Escape');assert.equal(up.disabled,true);
+ ui.key('ArrowUp');assert.equal(speed(),50);
+ ui.key('Escape');assert.equal(up.disabled,false);
+ for(const percent of [75,100,125,150]){
+    ui.key('ArrowUp');assert.equal(speed(),percent);
+ }
+ assert.equal(up.disabled,true);
+ ui.key('ArrowUp');assert.equal(speed(),150);
+ const loading=ui.state().race.deliveryTheme==='passengers'?'passenger-load':'cargo-load';
+ reachJob(ui,loading);
+ assert.equal(up.disabled,true);assert.equal(speed(),0);
+ ui.key('ArrowUp');ui.document.emit('click',{target:up,detail:1});assert.equal(speed(),0);
+ complete(ui);
+ assert.equal(up.hidden,true);
+ ui.key('ArrowUp');assert.equal(speed(),150);
+ assert.equal(ui.evaluate("game.dispatch('rematch')"),true);
+ assert.equal(speed(),0);
+});
+test('the train waits for Up without a start banner',()=>{
+ const ui=setup();start(ui);
+ assert.equal(node(ui,'speedCue'),null);
+ go(ui);
+ assert.match(html, /#footerDashboard \.race-utility\{background:#1677ae/);
+ ui.frames(8,80);
+ assert.equal(ui.state().race.player.distance,0);
+ complete(ui);ui.click('#skipCelebration');ui.click('#rewardReplay');go(ui);
+ assert.equal(ui.state().race.player.distance,0);
+});
+
+for(const deliveryTheme of ['passengers','cargo'])test(`six fresh Up presses after ${deliveryTheme} unloading reach top speed`,()=>{
+ const ui=setup();start(ui);
+ ui.evaluate(`{
+    const r=ThomasRaceCore.createRace({deliveryTheme:'${deliveryTheme}'});
+    state.race=r;r.phase='racing';r.countdown=0;r.elapsed=300;state.phase='racing';
+    const v=r.player,job=v.serviceStates.at(-1);
+    v.speedPercent=150;
+    for(const earlier of v.serviceStates.slice(0,-1))earlier.completed=true;
+    v.carried.passengers=r.deliveryTheme==='passengers'?3:0;
+    v.carried.container=r.deliveryTheme==='cargo'?'container-1':null;
+    v.carried.cargo=r.deliveryTheme==='cargo';
+    v.distance=job.at-.01;v.velocity=0;game.step(.1);render();
+ }`);
+ const up=node(ui,'action-accelerate');
+ assert.equal(up.disabled,true);
+ for(let i=0;ui.state().race.player.service;i++){
+    assert.ok(i<100,'unloading finishes');
+    performVisibleJob(ui,false);ui.frames(.2,20);
+ }
+ assert.equal(up.disabled,false);
+ const stop=ui.state().race.player.distance;
+ assert.equal(node(ui,'speedReading').textContent,'0');
+ assert.equal(node(ui,'speedNeedle').getAttribute('transform'),'rotate(-135 50 50)');
+ ui.key('ArrowUp',{repeat:true});ui.frames(3,30);
+ assert.equal(ui.state().race.player.distance,stop);
+ assert.equal(ui.state().race.player.speedPercent,0);
+ ui.key('Escape');ui.key('ArrowUp');ui.key('Escape');
+ assert.equal(ui.state().race.player.speedPercent,0);
+ for(const percent of [25,50,75,100,125,150]){
+    if(deliveryTheme==='passengers')ui.key('ArrowUp');
+    else ui.click('#action-accelerate');
+    assert.equal(ui.state().race.player.speedPercent,percent);
+    if(percent===25){
+        ui.frames(2,20);
+        assert.equal(ui.state().race.player.velocity,250);
+        assert.equal(node(ui,'speedReading').textContent,'25');
+    }
+ }
+ assert.equal(up.disabled,true);
+ assert.equal(node(ui,'speedReading').textContent,'25');
+ ui.frames(8,80);
+ assert.equal(node(ui,'speedReading').textContent,'150');
+ assert.equal(node(ui,'speedNeedle').getAttribute('transform'),'rotate(135 50 50)');
+ const result=complete(ui);
+ assert.equal(result.race.player.distance,242000);
+ assert.equal(up.hidden,true);
 });
 test('each new job is usable through the canvas and its contextual keyboard control',()=>{
  for(const type of ['repairs','rocks','coal','level-crossing']){
@@ -222,8 +310,7 @@ test('each new job is usable through the canvas and its contextual keyboard cont
   assert.equal(ui.state().race.player.service.phase,'working');
   for(let i=0;i<100&&ui.state().race.player.service;i++){ui.frames(.2,20);if(!node(ui,'action-race-help').disabled)ui.key('Enter');}
   assert.equal(ui.state().race.player.service,null,type);
-  assert.ok(ui.state().race.player.boostRemaining>0);
-  assert.equal(ui.evaluate('ThomasRaceCore.getView(state.race).boostQueued'),true);
+  assert.equal(ui.state().race.player.serviceStates.find(job=>job.type===type).completed,true);
 
  }
 });
@@ -242,4 +329,27 @@ test('Space sounds one horn call for either bus and held-key repeats never retri
   ui.document.emit('keyup',{key:' ',target:ui.document.activeElement});ui.key(' ');assert.equal(ui.evaluate('signalCalls.filter(n=>n==="horn").length'),2);
   ui.key('Escape');ui.key(' ');assert.equal(ui.evaluate('signalCalls.filter(n=>n==="horn").length'),2,'paused Space cannot sound the horn');
  }
+});
+
+test('holding Up or the dial builds speed and releasing ends acceleration input',()=>{
+ for(const pointer of [false,true]){
+    const ui=setup();start(ui);go(ui);
+    const dial=node(ui,'action-accelerate');
+    if(pointer)ui.document.emit('pointerdown',{target:dial,button:0,pointerId:1});
+    else ui.key('ArrowUp',{hold:true});
+    ui.frames(2,60);
+    const speed=ui.state().race.player.speedPercent;
+    assert.ok(speed>25&&speed<150);
+    if(pointer){
+        ui.document.emit('pointerup',{target:dial,pointerId:1});
+        ui.document.emit('click',{target:dial,detail:1});
+    }else ui.document.emit('keyup',{key:'ArrowUp'});
+    ui.frames(.5,60);
+    assert.equal(ui.state().race.player.speedPercent,speed);
+ }
+});
+test('one continuous Up hold reaches full speed',()=>{
+ const ui=setup();start(ui);go(ui);ui.key('ArrowUp',{hold:true});
+ ui.frames(9,60);
+ assert.equal(ui.state().race.player.velocity,1500);
 });

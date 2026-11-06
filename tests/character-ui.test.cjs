@@ -1,10 +1,11 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const {setup}=require('./helpers/game-harness.cjs');
+const {setup,accelerateTo}=require('./helpers/game-harness.cjs');
 const ids=['thomas','percy','james','bertie','toby','spencer','emily','diesel','bulgy','harold'];
 const node=(ui,id)=>ui.document.querySelector('#'+id);
 function finish(ui,keyboard){
  for(let n=0;ui.state().phase!=='complete';n++){
   assert.ok(n<2200);const s=ui.state().race.player.service;
+  accelerateTo(ui,keyboard);
   if(s?.phase==='ready'){
    if(s.type==='animals')keyboard?ui.key(' '):ui.click('#action-whistle');
    else if(!node(ui,'action-race-help').disabled)keyboard?ui.key('Enter'):ui.click('#action-race-help');

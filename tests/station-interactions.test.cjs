@@ -69,7 +69,6 @@ test('harbour waits for Enter or its job picture, then completes once after six 
   ui.click('#pauseOverlay [data-action="resume"]');ui.frames(4.1,20);
   assert.equal(ui.state().race.player.service,null);
   assert.equal(ui.state().race.player.serviceStates.find(s=>s.id===begun.id).completed,true);
-  assert.equal(ui.state().race.player.boostRemaining>0,true);
  }
 });
 

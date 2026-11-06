@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const {setup}=require('./helpers/game-harness.cjs');
+const {setup,accelerateTo}=require('./helpers/game-harness.cjs');
 function target(s,v){
  if(s.type==='wash')return{kind:'mud',id:v.mudPatches.findIndex(Boolean)};
  if(s.type.startsWith('passenger-'))return{kind:'service',id:'passenger-'+s.groups.findIndex(x=>!x)};
@@ -14,6 +14,7 @@ for(const seed of [1,24,40])for(const theme of ['passengers','cargo'])test(`Haro
  const seen=new Set();
  for(let n=0;ui.state().phase!=='complete';n++){
   assert.ok(n<2200);const v=ui.state().race.player,s=v.service;
+  accelerateTo(ui,theme==='passengers');
   if(s?.phase==='ready'){
    assert.match(ui.evaluate('ui.taskKey'),/^race\.flight\./);seen.add(s.id);
    if(theme==='passengers')ui.key(s.type==='animals'?' ':'Enter');

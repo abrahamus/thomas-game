@@ -205,11 +205,12 @@ function setup(saved, { seed = 17, unavailableStorage = false, raceUnavailable =
     } };
     vm.runInContext(raceCoreSource + '\n' + coreSource + '\n' + audioSource + '\n' + musicSource + '\n' + runtimeSource, context, { filename: 'standalone-game.js' });
     const evaluate = expression => vm.runInContext(expression, context);
-    function key(key, { target = document.activeElement, repeat = false, ...rest } = {}) {
+    function key(key, { target = document.activeElement, repeat = false, hold = false, ...rest } = {}) {
         const event = document.emit('keydown', { key, target, repeat, ...rest });
         // Simulate the native default click once. The adapter must prevent it
         // when it handles the key itself, and suppress repeated activation.
         if (!event.defaultPrevented && [' ', 'Enter'].includes(key) && target.tagName === 'BUTTON') target.click();
+        if(!hold)document.emit('keyup',{key,target});
         return event;
     }
     function click(selector) {
@@ -234,4 +235,11 @@ function setup(saved, { seed = 17, unavailableStorage = false, raceUnavailable =
 }
 
 
-module.exports = { html, setup, script };
+function accelerateTo(ui,keyboard,percent=150){
+    const up=ui.document.getElementById('action-accelerate');
+    while(!up.hidden&&!up.disabled&&ui.evaluate('state.race.player.speedPercent')<percent){
+        if(keyboard)ui.key('ArrowUp');
+        else ui.click('#action-accelerate');
+    }
+}
+module.exports = { html, setup, script, accelerateTo };

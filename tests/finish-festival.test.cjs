@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 require('../scripts/race-model.js');const R=global.ThomasRaceCore;
 function nearFinish(settings={},outcome='player'){
  const r=R.createRace(settings),end=R.COURSES[r.courseId].length;r.phase='racing';r.countdown=0;r.elapsed=300;
+ r.player.speedPercent=100;
  for(const who of ['player','rival']){const v=r[who];v.distance=end-(outcome==='tie'||outcome===who?1:1800);v.velocity=R.CRUISE_SPEED;v.targetVelocity=R.CRUISE_SPEED;v.serviceStates.forEach(s=>{s.completed=true;s.phase='complete';s.groups.fill(true);});v.terrainStates.forEach(s=>s.completed=true);}
  return r;
 }

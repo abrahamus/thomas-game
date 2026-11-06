@@ -49,11 +49,13 @@ test('Ana countdown fits the lights and introduces railway jobs', () => {
     assert.equal(lastWords(ui), 'Go! Let’s help along the way.');
     assert.equal(ui.state().phase, 'racing');
     ui.frames(1);
-    assert.ok(ui.state().velocity > 0, 'Thomas drives automatically during the spoken introduction');
+    assert.equal(ui.state().velocity,0,'Thomas waits for Up during the introduction');
+    ui.key('ArrowUp');ui.frames(1);
+    assert.ok(ui.state().velocity>0);
 });
 
 test('both racers continue moving without repeated task narration or a stopped quiz', () => {
-    const ui = heldVoice(); racing(ui);
+    const ui = heldVoice(); racing(ui);ui.key('ArrowUp');
     const before = count(ui), distances = ui.state().race;
     ui.frames(2);
     assert.equal(count(ui), before, 'the railway job does not repeat every frame');
@@ -74,7 +76,7 @@ test('both racers continue moving without repeated task narration or a stopped q
 
 test('Repeat describes the current racing task rather than reviving older encouragement', () => {
     const ui = heldVoice(); racing(ui);
-    speak(ui, 'race.boost');
+    speak(ui, 'race.cruise');
     ui.evaluate("dispatchAction('repeat')");
     assert.equal(lastWords(ui), ui.evaluate('words(ui.taskKey)'));
     assert.equal(lastWords(ui),ui.evaluate('words(ui.taskKey)'));
@@ -83,7 +85,7 @@ test('Repeat describes the current racing task rather than reviving older encour
 
 test('pause cancels race narration and freezes both vehicles then resume repeats the current task', () => {
     const ui = heldVoice(); racing(ui);
-    speak(ui, 'race.boost');
+    speak(ui, 'race.cruise');
     ui.key('Escape');
     assert.equal(ui.state().paused, true);
     assert.equal(ui.evaluate('ui.pendingSpeech'), null);
@@ -98,7 +100,7 @@ test('pause cancels race narration and freezes both vehicles then resume repeats
 
 test('returning to the start screen cancels speech and stale callbacks cannot finish a new race', () => {
     const ui = heldVoice(); racing(ui);
-    speak(ui, 'race.boost');
+    speak(ui, 'race.cruise');
     ui.evaluate('globalThis.oldRaceOnEnd=reviewUtterances.at(-1).onend');
     ui.click('#pauseButton');ui.evaluate("dispatchAction('home')");
     assert.equal(ui.state().race, null);
@@ -111,7 +113,7 @@ test('returning to the start screen cancels speech and stale callbacks cannot fi
 
 test('mute cancels race speech and unmute repeats the current railway job', () => {
     const ui = heldVoice(); racing(ui);
-    speak(ui, 'race.boost');
+    speak(ui, 'race.cruise');
     ui.evaluate("dispatchAction('mute')");
     assert.equal(ui.state().isMuted, true);
     assert.equal(ui.evaluate('audio.busy'), false);
@@ -125,9 +127,9 @@ test('mute cancels race speech and unmute repeats the current railway job', () =
     assert.equal(ui.evaluate('audio.busy'), true);
 });
 
-test('results take priority over boost praise without an obsolete speech queue', () => {
+test('results take priority over driving guidance without an obsolete speech queue', () => {
     const ui = heldVoice(); racing(ui);
-    speak(ui, 'race.boost');
+    speak(ui, 'race.cruise');
     ui.evaluate("state.phase='complete';state.race.phase='complete';state.race.winner='player';ui.festival={stage:'award',results:false}");
     speak(ui, 'race.festival.win');
     assert.equal(lastWords(ui), 'First place! A golden trophy for you!');
@@ -150,19 +152,19 @@ function atFirstService(theme = 'cargo') {
         state.race=ThomasRaceCore.createRace({courseId:'country',opponentId:'percy',seed:2,deliveryTheme:${JSON.stringify(theme)}});
         state.race.phase='racing';state.race.countdown=0;state.race.events=[];
         state.phase='racing';state.race.player.distance=state.race.services[0].at-5;
-        state.race.player.velocity=10;render()`);
+        state.race.player.speedPercent=25;state.race.player.velocity=10;render()`);
     ui.frames(1, 120);
     assert.ok(ui.state().race.player.service, 'Thomas automatically stops at the first delivery job');
     return ui;
 }
 
-test('service arrival gives the current useful action and takes priority over boost praise', () => {
+test('service arrival gives the current useful action and takes priority over driving guidance', () => {
     const ui = atFirstService('passengers');
     assert.equal(lastWords(ui), 'Let’s welcome the passengers aboard.');
     assert.equal(ui.evaluate('ui.taskKey'), 'race.service.passenger-load');
     const before = count(ui);
-    speak(ui, 'race.boost'); speak(ui, 'gear.1');
-    assert.equal(count(ui), before, 'incidental control explanations and praise cannot interrupt the job');
+    speak(ui, 'race.cruise'); speak(ui, 'gear.1');
+    assert.equal(count(ui), before, 'incidental control explanations and driving guidance cannot interrupt the job');
     assert.equal(ui.evaluate('ui.pendingSpeech'), null);
 });
 

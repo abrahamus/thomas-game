@@ -1397,7 +1397,7 @@
   }
   function poseVehicle(v,state,core,race,who) {
     const flight=core.getFlightPose(race,who);
-    if(flight){transformRoute(v,flight);v.rotation.x=flight.pitch;v.rotation.z=flight.roll;const clock=race.elapsed+core.START_COUNTDOWN-race.countdown;v.userData.rotor.rotation.y=clock*37;v.userData.tailRotor.rotation.x=clock*57;v.userData.beacon.material=material(state.boostActive?0xffffba:0xffd24f);return flight;}
+    if(flight){transformRoute(v,flight);v.rotation.x=flight.pitch;v.rotation.z=flight.roll;const clock=race.elapsed+core.START_COUNTDOWN-race.countdown;v.userData.rotor.rotation.y=clock*37;v.userData.tailRotor.rotation.x=clock*57;return flight;}
     const p=core.sampleVehicleRoute(race,who,state.distance||0);transformRoute(v,p,core.character(v.userData.kind).vehicleType==='road'?-.015:RAIL_TOP);
     if(v.userData.tender){
       // The tender's wheelbase follows its own position on bends and hills.
@@ -1415,15 +1415,15 @@
   }
   function updateVehicleSteam(system,vehicle,state,race,core) {
     const time=race.elapsed||0,velocity=state.velocity||0;
-    const moving=velocity>1&&race.phase!=='countdown',isBus=core.character(vehicle.userData.kind).vehicleType==='road',diesel=core.character(vehicle.userData.kind).power==='diesel',boosting=!!state.boostActive;
+    const moving=velocity>1&&race.phase!=='countdown',isBus=core.character(vehicle.userData.kind).vehicleType==='road',diesel=core.character(vehicle.userData.kind).power==='diesel';
     const outlet=vehicle.userData.steamOutlet?vehicle.userData.steamOutlet.clone().applyMatrix4(vehicle.matrixWorld):new T.Vector3(0,.42,-2.85).applyMatrix4(vehicle.matrixWorld);
     const heading=vehicle.rotation.y,back=new T.Vector3(-Math.sin(heading),0,-Math.cos(heading));
     system.bubbles.forEach((m,i)=>{
-      const age=(time*.5+i/12)%1,size=(.17+age*.74)*(boosting?1.28:1);
+      const age=(time*.5+i/12)%1,size=.17+age*.74;
       m.visible=moving&&!isBus&&core.character(vehicle.userData.kind).power!=='rotor';m.scale.setScalar(diesel?size*.45:size);
       m.position.copy(outlet).addScaledVector(back,age*(.8+velocity*core.WORLD_SCALE*.65));
       m.position.x+=Math.sin(i*2.1)*age*.3;m.position.y+=age*2.8;
-      m.material.opacity=(1-age)*(boosting?.53:.33);m.material.color.setHex(diesel?(boosting?0xc3d9dd:0x8b999e):(boosting?0xfff3c4:0xfffdf3));
+      m.material.opacity=(1-age)*.33;m.material.color.setHex(diesel?0x8b999e:0xfffdf3);
     });
   }
   function updateScene(b,race,options={}) {

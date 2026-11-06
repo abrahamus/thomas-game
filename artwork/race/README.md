@@ -2,7 +2,7 @@
 
 The editable renderer is `scripts/race-renderer.js`; its embedded copy in the standalone HTML is refreshed by `scripts/build-race-game.py`. The pinned Three.js r170 bundle and MIT license remain offline. Artwork uses procedural meshes and materials; no external textures, fonts, images, or models are requested during play.
 
-The 1,000-unit cruise uses 214,500-unit courses. The model's `courseDistance` transform places the eight jobs, terrain boundaries and elevation ramps; the renderer uses the same transform for lakes, snow/ice, weather, hillside earth and fence clearances. Shared lakes retain their width and stretch along the route. Vehicle meshes, coach/tender spacing, rail gauge and world scale remain unchanged. Crossing and harbour structures still use their physical dimensions, and restriction clearance still waits for the whole vehicle. Audio and cargo sway normalize against the shared cruising speed.
+Each course finishes at 242,000 units. The added straight extends the track, road and scenery beyond the old finish at 214,500 units. The model's `courseDistance` conversion keeps the existing job, terrain and elevation positions. The renderer uses the same conversion to place lakes, weather, hillside earth and fence clearances. Crossing and harbour structures still use their physical dimensions. Restrictions stay in effect until the whole vehicle clears the section. Audio and cargo sway use the shared cruising speed as their reference.
 
 ## Ten selectable characters
 
@@ -26,7 +26,7 @@ A fixed camera adjustment gives flights extra vertical and horizontal room. `tes
 
 Each race has eight service stops. Loading, delivery, animals, and washing are always present; four additional jobs vary with the race seed, including at least two of repairs, rocks, coal, and a road crossing. Water, branch clearance, and the harbour drawbridge remain available. Each selected racer performs equal-duration work independently on its own railway, road or flight corridor. Road repairs replace sleepers with potholes; road water service fills a depot tank; road vehicles refuel at a pump instead of loading coal. Either bus waits for a train when racing a bus or Harold, or waits at traffic lights on a shared road junction when racing a train. Road drawbridges carry pavement instead of rails.
 
-The model owns job state, timers, loads, terrain completion, and boost rewards. The renderer reads that state to animate workers and sleepers, crane hooks and loads, coal scoops and filling bunkers, moving animals and gates, washing, water, and road crossings. James, Spencer and Emily fill their own tenders. Diesel supplies depot coal and water stores. Bertie and Bulgy refill their fuel tanks and supply depot water stores; pump controls, fuel gauges, hoses, task pictures and narration agree with those roles. Nothing is advanced by wall-clock time in the renderer.
+The model owns job state, timers, loads, and terrain completion. The renderer reads that state to animate workers and sleepers, crane hooks and loads, coal scoops and filling bunkers, moving animals and gates, washing, water, and road crossings. James, Spencer and Emily fill their own tenders. Diesel supplies depot coal and water stores. Bertie and Bulgy refill their fuel tanks and supply depot water stores; pump controls, fuel gauges, hoses, task pictures and narration agree with those roles. Nothing is advanced by wall-clock time in the renderer.
 
 `pick(clientX, clientY)` uses the current canvas rectangle and projected objects, with a minimum 44-pixel target diameter. It returns a dirty patch ID or service target ID only during a ready job. Completed units are excluded. Keyboard/large-picture controls use the same model action path. The new target IDs are `sleeper-0..2`, `rock-0..1`, `coal-0..2`, and `crossing`.
 
@@ -60,7 +60,7 @@ Running rails now use a solid swept steel profile, from a foot resting on the sl
 
 ## Rewards
 
-A complete job or fully cleared restricted terrain section adds six seconds of 25% extra speed. The model preserves that time while stopped, braking, or restricted. The renderer brightens exhaust only during an active burst. To the right of the enlarged parallel progress tracks, the dashboard’s lightning-bolt badge shows a clock for queued boost time and blue forward chevrons during an active burst. The left card previews only required jobs, followed by the finish flag; terrain guidance remains spoken. Eight completion pictures appear in the finish festival, not the racing dashboard. No frame-based reward logic lives in the renderer.
+ The left card previews only required jobs, followed by the finish flag; terrain guidance remains spoken. Eight completion pictures appear in the finish festival, not the racing dashboard. No frame-based reward logic lives in the renderer.
 
 ## Verification and current previews
 
@@ -100,6 +100,6 @@ node scripts/render-race-preview.cjs country percy 175500 /private/tmp/festival.
 node --test tests/race-renderer.test.cjs tests/festival-renderer.test.cjs
 ```
 
-Preview arguments are course, rival, distance, output, width, height, an unused legacy slot, effect, delivery theme, seed, optional working progress (0–1), and optional player character ID (defaults to Thomas). Effects include `boost`, `service-ready`, `service-working`, and `service-complete`. For `festival-win`, `festival-lose` or `festival-tie`, the working-progress argument instead specifies elapsed celebration seconds (for example `6`). Preview setup deliberately creates a diagnostic pose; it is not a gameplay driver.
+Preview arguments are course, rival, distance, output, width, height, an unused legacy slot, effect, delivery theme, seed, optional working progress (0–1), and optional player character ID (defaults to Thomas). Effects include `service-ready`, `service-working`, and `service-complete`. For `festival-win`, `festival-lose` or `festival-tie`, the working-progress argument instead specifies elapsed celebration seconds (for example `6`). Preview setup deliberately creates a diagnostic pose; it is not a gameplay driver.
 
 `tests/cloud-crossing.test.cjs` checks the two cloud/tunnel pairs for both buses in both roles on all courses, actual cloud occlusion at four viewport sizes, continuous crossing surfaces, and mode/instruction agreement across all 90 ordered pairings. Crossing collision tests include Harold in either role.

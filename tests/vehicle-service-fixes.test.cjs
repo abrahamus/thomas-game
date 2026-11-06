@@ -10,7 +10,7 @@ test('buses refuel with a pump and fuel instructions, never a coal bin or coal s
   const slot=b.objects.services.find(o=>o.spec.id===s.id).slots[who==='player'?0:1];
   assert.equal(!!slot.group.getObjectByName('coal-scoop'),false,`${id}/${who}: uses coal scoops`);
   assert.equal(!!slot.group.getObjectByName('depot-coal-bin'),false);assert.ok(slot.group.getObjectByName('road-fuel-pump'));
-  if(who==='player'){assert.match(R.NARRATION[R.getView(r).taskKey],/fuel/);for(let i=0;i<3;i++){assert.equal(R.serviceAction(r,'coal-'+i),true);assert.equal(R.serviceAction(r,'coal-'+i),false);R.step(r,1);}assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);assert.equal(v.fuel,1);assert.equal(v.coal,0);}
+  if(who==='player'){assert.match(R.NARRATION[R.getView(r).taskKey],/fuel/);for(let i=0;i<3;i++){assert.equal(R.serviceAction(r,'coal-'+i),true);assert.equal(R.serviceAction(r,'coal-'+i),false);R.step(r,1);}assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);assert.equal(v.fuel,1);assert.equal(v.coal,0);}
   V.disposeScene(b);
  }
 });

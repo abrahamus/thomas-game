@@ -2,8 +2,9 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 require('../scripts/race-model.js');
-const R=global.ThomasRaceCore;
+const R=global.ThomasRaceCore,{accelerateTo}=require('./helpers/race-driver.cjs');
 function help(race){
+  accelerateTo(R,race,100);
   const s=R.getView(race).currentService;
   if(!s||s.phase!=='ready')return;
   return s.type==='animals'?R.whistle(race):R.serviceAction(race);
@@ -54,22 +55,29 @@ test('new jobs require their complete actions and reject early, overlapping, and
   }
 });
 
-test('whole jobs award six seconds once, saved during stops and spent only above cruising speed',()=>{
-  const race=reach('coal'),s=race.player.service,before=race.player.boostRemaining;
-  for(let i=0;i<3;i++){R.serviceAction(race);R.step(race,1);if(i<2)assert.equal(race.player.boostRemaining,before);}
-  assert.equal(s.completed,true);
-  assert.equal(race.player.boostRemaining,before+6);
-  R.step(race,1);assert.equal(race.player.boostRemaining,before+6,'Acceleration below cruise preserves the reward');
-  let spent=false;
-  for(let i=0;i<500;i++){
-    const v=race.player,remaining=v.boostRemaining;R.step(race,.05);
-    if(v.boostRemaining<remaining){assert.ok(v.velocity>R.SPEEDS[4]);assert.ok(v.targetVelocity>=v.velocity-1e-6);spent=true;break;}
-    help(race);
+test('a completed job gives feedback once and waits for Up to depart',()=>{
+  const race=reach('coal'),job=race.player.service;
+
+  for(let i=0;i<3;i++){
+    R.serviceAction(race);R.step(race,1);
+    if(i<2)assert.equal(job.completed,false);
   }
-  assert.ok(spent,'A clear stretch spends the earned boost');
+  assert.equal(job.completed,true);
+  assert.equal(race.events.filter(e=>e.type==='service-done'&&e.serviceId===job.id).length,1);
+  const distance=race.player.distance;
+  assert.equal(race.player.speedPercent,0);
+  assert.equal(R.adjustSpeed(race,-1),false);
+  R.step(race,1);
+  assert.equal(race.player.distance,distance);
+  assert.equal(race.player.velocity,0);
+  assert.equal(R.adjustSpeed(race,1),true);
+  assert.equal(race.player.speedPercent,25);
+  R.step(race,1);
+  assert.equal(race.player.targetVelocity,250);
+  assert.ok(race.player.velocity>0&&race.player.velocity<250);
 });
 
-test('each terrain section awards once after the entire train clears, including both tunnels',()=>{
+test('each terrain section completes after the entire train clears, including both tunnels',()=>{
   const race=R.createRace({seed:9,opponentId:'james'});
   for(let i=0;i<5000&&race.phase!=='complete';i++){
     help(race);R.step(race,.1);
@@ -78,31 +86,30 @@ test('each terrain section awards once after the entire train clears, including 
     }
   }
   assert.equal(race.phase,'complete');
-  const events=race.events.filter(e=>e.type==='boost-earned');
-  assert.equal(events.length,13);
-  assert.equal(new Set(events.map(e=>e.completionId)).size,13);
+  assert.equal(race.events.some(e=>e.type.includes('boost')),false);
   assert.equal(race.player.terrainStates.filter(s=>s.completed).length,5);
   assert.equal(R.COURSES.country.sections.filter(s=>s.type==='tunnel').length,2);
 });
 
-test('crossing departure holds the speed cap and saved boost until the last coach clears',()=>{
+test('crossing departure holds the speed limit until the last coach clears',()=>{
   const race=reach('level-crossing'),s=race.player.service;
   R.serviceAction(race);R.step(race,5);
-  const remaining=race.player.boostRemaining;
+  assert.equal(R.adjustSpeed(race,1),true,'First Up starts the vehicle');
+  assert.equal(R.adjustSpeed(race,1),true,'Second Up reaches the crossing limit');
   while(race.player.distance-R.getCoachOffset(race,'player')-400<=s.at+1400){
     assert.ok(race.player.velocity<=R.SPEEDS[4]*.5+1e-7);
-    assert.equal(race.player.boostRemaining,remaining);
-    assert.equal(race.player.boostActive,false);
+    assert.equal(R.adjustSpeed(race,1),false);
     R.step(race,.05);
   }
-  assert.ok(race.player.boostRemaining>=6);
+  assert.equal(R.adjustSpeed(race,1),true);
 });
 
-test('an independent rival earns the same thirteen rewards without any player action',()=>{
+test('the rival independently completes all jobs and restricted sections',()=>{
   const race=R.createRace({seed:91,opponentId:'bertie'});
   R.step(race,700);
   assert.equal(race.player.serviceStates.filter(s=>s.completed).length,0);
   assert.equal(race.rival.serviceStates.filter(s=>s.completed).length,8);
-  assert.equal(race.events.filter(e=>e.type==='rival-boost-earned').length,13);
+  assert.equal(race.rival.terrainStates.filter(s=>s.completed).length,5);
+  assert.equal(race.events.filter(e=>e.type==='rival-service-done').length,8);
   assert.ok(race.rival.finishTime);
 });

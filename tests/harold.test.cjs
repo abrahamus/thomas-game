@@ -24,12 +24,12 @@ test('Harold flies clear of scenery, lands for passengers and flies longer marke
  assert.ok(air.end>ground.end);assert.equal(air.end+R.getCharacter(r).coachRear,ground.end+R.getCoachOffset(r,'rival')+R.getCharacter(r,'rival').coachRear);
  const pose=R.getFlightPose(r,'player');assert.deepEqual(R.getFlightPose(r,'player'),pose,'drawing is deterministic and does not advance the race');
 });
-test('fuel work cannot be skipped or rewarded twice, and flight terrain rewards wait for the tail',()=>{
+test('fuel work completes once and flight terrain stays restricted until the tail clears',()=>{
  const r=R.createRace({playerId:'harold',opponentId:'percy',seed:24});r.phase='racing';r.countdown=0;const s=r.player.serviceStates.find(s=>s.type==='coal');
  r.player.distance=s.at;r.player.service=s;r.player.velocity=0;s.phase='ready';
  for(let i=0;i<3;i++){assert.equal(R.serviceAction(r,'coal-'+i),true);assert.equal(R.serviceAction(r,'coal-'+i),false);R.step(r,1);if(i<2)assert.equal(R.serviceAction(r,'coal-'+i),false);}
- assert.equal(s.completed,true);assert.equal(r.player.fuel,1);assert.equal(r.player.coal,0);assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);
+ assert.equal(s.completed,true);assert.equal(r.player.fuel,1);assert.equal(r.player.coal,0);assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);
  const t=R.createRace({playerId:'harold',opponentId:'percy',seed:24});t.phase='racing';t.countdown=0;const section=R.getTravelSections(t).find(s=>s.type==='tunnel');t.player.serviceStates.forEach(s=>{if(s.at<section.end)s.completed=true;});
  t.player.distance=section.end+R.character('harold').coachRear-.1;t.player.velocity=0;R.step(t,.01);assert.equal(t.player.terrainStates.find(s=>s.id===section.id).completed,false);
- t.player.distance+=1;R.step(t,.01);assert.equal(t.player.terrainStates.find(s=>s.id===section.id).completed,true);R.step(t,.1);assert.equal(t.events.filter(e=>e.type==='boost-earned'&&e.completionId===section.id).length,1);
+ t.player.distance+=1;R.step(t,.01);assert.equal(t.player.terrainStates.find(s=>s.id===section.id).completed,true);const cleared=t.player.terrainStates.find(s=>s.id===section.id).completedAt;R.step(t,.1);assert.equal(t.player.terrainStates.find(s=>s.id===section.id).completedAt,cleared);
 });

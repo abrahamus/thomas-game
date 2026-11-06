@@ -1,14 +1,64 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const context=vm.createContext({});vm.runInContext(fs.readFileSync(path.join(__dirname,'../scripts/race-model.js'),'utf8'),context);const R=context.ThomasRaceCore,{drive}=require('./helpers/race-driver.cjs');
+const context=vm.createContext({});vm.runInContext(fs.readFileSync(path.join(__dirname,'../scripts/race-model.js'),'utf8'),context);const R=context.ThomasRaceCore,{drive,accelerateTo}=require('./helpers/race-driver.cjs');
 const json=x=>JSON.parse(JSON.stringify(x));
-function rolling(options={}){const r=R.createRace(options);R.step(r,R.START_COUNTDOWN);return r;}
+function rolling(options={},percent=100){const r=R.createRace(options);R.step(r,R.START_COUNTDOWN);accelerateTo(R,r,percent);return r;}
+test('the race starts at rest and six separate Up presses reach top speed',()=>{
+    const r=rolling({},0),v=r.player;
+    R.step(r,3);
+    assert.equal(v.distance,0);
+    assert.equal(v.velocity,0);
+    assert.equal(r.rival.targetVelocity,1500);
+    for(const percent of [25,50,75,100,125,150]){
+        assert.equal(R.adjustSpeed(r,1),true);
+        assert.equal(v.speedPercent,percent);
+    }
+    assert.equal(R.adjustSpeed(r,1),false);
+    assert.equal(R.adjustSpeed(r,-1),false);
+    R.step(r,1);
+    assert.ok(v.velocity>0&&v.velocity<1500);
+    R.step(r,7.25);
+    assert.ok(Math.abs(v.velocity-1500)<1e-7);
+});
+test('automatic braking reaches the station and clears every speed grade',()=>{
+    const r=rolling({deliveryTheme:'passengers'},150),v=r.player;
+    const first=v.serviceStates[0];
+    v.distance=first.at-3600;
+    v.velocity=1500;
+    for(let i=0;i<200&&!v.service;i++)R.step(r,.05);
+    assert.equal(v.service,first);
+    assert.equal(v.distance,first.at);
+    assert.equal(v.velocity,0);
+    assert.equal(v.speedPercent,0);
+    assert.equal(R.adjustSpeed(r,1),false);
+});
+test('terrain holds the safe speed through rear clearance and requires Up to accelerate afterward',()=>{
+    const r=rolling({},150),v=r.player;
+    for(const service of v.serviceStates)service.completed=true;
+    const section=R.getTravelSections(r).find(s=>s.type==='wet');
+    v.distance=section.start-4000;
+    v.velocity=1500;
+    while(v.distance<section.start)R.step(r,.05);
+    assert.equal(R.adjustSpeed(r,1),false);
+    const state=v.terrainStates.find(s=>s.id===section.id);
+    while(!state.completed){
+        assert.ok(v.velocity<=R.CRUISE_SPEED*section.cap+1e-5);
+        R.step(r,.05);
+    }
+    R.step(r,2);
+    assert.equal(v.speedPercent,40);
+    assert.equal(v.velocity,400);
+    assert.equal(R.adjustSpeed(r,1),true);
+    assert.equal(v.speedPercent,50);
+    R.step(r,1);
+    assert.equal(v.velocity,500);
+});
 function arrive(r,type){r.player.service=null;const s=r.player.serviceStates.find(s=>s.type===type);assert.ok(s,`Missing ${type}`);for(const q of r.player.serviceStates)if(q.at<s.at)q.processed=q.completed=true;r.player.distance=s.at-.01;r.player.velocity=1;R.step(r,.02);assert.equal(r.player.service,s);assert.equal(r.player.velocity,0);assert.equal(r.phase,'racing');return s;}
 function completePassengers(r,type){const s=arrive(r,type);for(let i=0;i<3;i++){assert.equal(R.serviceAction(r,`passenger-${i}`),true);R.step(r,1.01);}return s;}
 
 test('three courses have eight mandatory jobs and two distinct tunnel sections',()=>{
  for(const c of Object.values(R.COURSES)){
-  const r=R.createRace({courseId:c.id});assert.equal(c.length,214500);assert.equal(r.services.length,8);
+  const r=R.createRace({courseId:c.id});assert.equal(c.length,242000);assert.equal(r.services.length,8);
   assert.equal(new Set(c.sections.map(s=>s.id)).size,c.sections.length);
   assert.equal(c.sections.filter(s=>s.type==='tunnel').length,2);assert.ok(c.sections.every(s=>s.type!=='bridge'));
   for(const job of r.services)assert.ok(Math.abs(R.sampleRoute(c.id,job.at).grade)<1e-8,'Jobs stop on level track');
@@ -23,8 +73,8 @@ test('New rounds alternate delivery themes; exact rematches retain delivery them
 test('Climb rises8worldunits,plateaustayshighanddescentreturnsgroundwithmaximum6degreegrade',()=>{
     for(const c of Object.values(R.COURSES)){assert.equal(R.sampleRoute(c.id,R.courseDistance(72600)).y,0);assert.equal(R.sampleRoute(c.id,R.courseDistance(90600)).y,8);assert.equal(R.sampleRoute(c.id,R.courseDistance(98600)).y,8);assert.equal(R.sampleRoute(c.id,R.courseDistance(116600)).y,0);let previous=0;for(let d=R.courseDistance(72600);d<=R.courseDistance(90600);d+=100){const p=R.sampleRoute(c.id,d);assert.ok(p.y>=previous);previous=p.y;assert.ok(Math.abs(p.grade)<=Math.PI/30);}previous=8;for(let d=R.courseDistance(98600);d<=R.courseDistance(116600);d+=100){const p=R.sampleRoute(c.id,d);assert.ok(p.y<=previous);previous=p.y;assert.ok(Math.abs(p.grade)<=Math.PI/30);}assert.ok(R.sampleTerrainHeight(c.id,R.courseDistance(95000),60)<R.sampleTerrainHeight(c.id,R.courseDistance(95000),0)-7);assert.equal(R.sampleTerrainHeight(c.id,R.courseDistance(95000),0),7.68);for(const s of c.sections.filter(s=>['tunnel','bridge'].includes(s.type)))for(let d=s.start;d<s.end;d+=100)assert.equal(R.sampleRoute(c.id,d).grade,0);}
 });
-test('Automatic speedcapsanticipateentry,holduntilcoachclears,andboostneveroverridesthem',()=>{
-    for(const type of ['hill','downhill','tunnel','wet','snow']){const courseId=type==='snow'?'mountain':'country',r=rolling({courseId}),s=R.COURSES[courseId].sections.find(s=>s.type===type);for(const v of[r.player,r.rival]){for(const q of v.serviceStates)q.completed=q.processed=true;v.distance=s.start-4000;v.velocity=R.CRUISE_SPEED;v.boostRemaining=30;}let crossed=false;for(let i=0;i<1500;i++){R.step(r,.05);if(r.player.distance>s.end+R.getCoachOffset(r,'player')+400)break;if(r.player.distance>=s.start){crossed=true;assert.ok(r.player.velocity<=R.CRUISE_SPEED*s.cap+1e-5);assert.ok(r.player.targetVelocity<=R.CRUISE_SPEED*s.cap+1e-7);}}assert.ok(crossed);}
+test('Automatic speedcapsanticipateentry,hold until the coach clears for both racers',()=>{
+    for(const type of ['hill','downhill','tunnel','wet','snow']){const courseId=type==='snow'?'mountain':'country',r=rolling({courseId}),s=R.COURSES[courseId].sections.find(s=>s.type===type);for(const v of[r.player,r.rival]){for(const q of v.serviceStates)q.completed=q.processed=true;v.distance=s.start-4000;v.velocity=R.CRUISE_SPEED;}let crossed=false;for(let i=0;i<1500;i++){R.step(r,.05);if(r.player.distance>s.end+R.getCoachOffset(r,'player')+400)break;if(r.player.distance>=s.start){crossed=true;assert.ok(r.player.velocity<=R.CRUISE_SPEED*s.cap+1e-5);assert.ok(r.player.targetVelocity<=R.CRUISE_SPEED*s.cap+1e-7);}}assert.ok(crossed);}
 });
 test('Fully automatic braking stops exactlyatjob; earlyactionsdonotqueue; clockandrivalcontinue',()=>{
     const r=rolling({deliveryTheme:'passengers'});assert.equal(R.serviceAction(r),false);assert.equal(R.cleanMud(r,0),false);assert.equal(R.whistle(r),false);R.step(r,45);assert.equal(r.player.distance,R.JOB_DISTANCES[0]);assert.equal(r.player.velocity,0);assert.equal(r.player.service.type,'passenger-load');assert.equal(r.phase,'racing');const t=r.elapsed,p=r.rival.distance;R.step(r,15);assert.ok(r.elapsed>t);assert.ok(r.rival.distance>p);assert.equal(r.player.service.unitsDone,0);assert.equal(r.player.service.phase,'ready');assert.equal(R.getView(r).helpEnabled,true);
@@ -51,7 +101,7 @@ test('water, branch and harbour jobs wait for an action, then keep their work du
         if(type==='drawbridge')assert.equal(R.serviceAction(r,'wrong-control'),false);
         assert.equal(R.serviceAction(r),true);assert.equal(R.serviceAction(r),false);assert.equal(s.duration,duration);
         R.step(r,duration-.05);assert.equal(s.completed,false);R.step(r,.06);assert.equal(s.completed,true);
-        R.serviceAction(r);assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);
+        R.serviceAction(r);assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);
     }
 });
 test('the rival initiates its harbour job after its own seeded reaction while the player can wait',()=>{
@@ -83,8 +133,19 @@ test('seeded rival jobs and rewards remain independent of player input',()=>{
   assert.deepEqual(json(a.rival),json(b.rival));assert.deepEqual(json(a.profile),json(b.profile));
  }
 });
-test('Completeordinaryplayboards,delivers,washes,andcompletesjobsin5–6minutes',()=>{
-    for(const deliveryTheme of ['passengers','cargo'])for(const reaction of[.75,1.1,1.5]){const r=drive(R,{deliveryTheme,reaction,washSeconds:reaction===1.5?20:14,seed:199});assert.equal(r.player.serviceStates.filter(s=>s.completed).length,8);assert.ok(['player','rival','tie'].includes(r.winner));assert.equal(r.player.serviceStates.filter(s=>s.completed).length,8);assert.equal(r.player.carried.passengers,0);assert.equal(r.player.carried.container,null);assert.equal(r.player.dirt,0);assert.ok(r.elapsed+R.START_COUNTDOWN>=300&&r.elapsed+R.START_COUNTDOWN<=360);assert.equal(r.events.filter(e=>e.type==='complete').length,1);}
+test('ordinary play completes all jobs and finishes on the longer straight',()=>{
+    for(const deliveryTheme of ['passengers','cargo'])for(const reaction of [.75,1.1,1.5]){
+        const r=drive(R,{deliveryTheme,reaction,washSeconds:reaction===1.5?20:14,seed:199});
+        assert.equal(r.player.serviceStates.filter(s=>s.completed).length,8);
+        assert.ok(['player','rival','tie'].includes(r.winner));
+        assert.equal(r.player.carried.passengers,0);
+        assert.equal(r.player.carried.container,null);
+        assert.equal(r.player.dirt,0);
+        assert.equal(r.player.distance,242000);
+        const seconds=r.elapsed+R.START_COUNTDOWN;
+        assert.ok(seconds>=360&&seconds<=420);
+        assert.equal(r.events.filter(e=>e.type==='complete').length,1);
+    }
 });
 test('Noinputwaitswithoutpenaltyatliveloadjobwhilerivalcontinuesitsownwork',()=>{
     const r=drive(R,{noInput:true});assert.equal(r.phase,'racing');assert.equal(r.player.distance,R.JOB_DISTANCES[0]);assert.equal(r.player.service.phase,'ready');assert.ok(r.rival.distance>r.player.distance);assert.equal(r.player.finishTime,null);

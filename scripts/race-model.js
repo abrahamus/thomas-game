@@ -1,17 +1,17 @@
 /* Deterministic Sodor Delivery Races: help, complete and deliver. */
 (() => {
     'use strict';
-    const CRUISE_SPEED=1000,COURSE_LENGTH=214500,COURSE_SCALE=COURSE_LENGTH/175500;
-    // Stretch course landmarks with the faster cruise; vehicle dimensions stay
-    // in world units so both racers visibly travel faster without longer jobs.
-    // 214,500 units also compensate for quicker fixed-size coach/crossing
-    // clearance; calibration compares complete races with the 825-unit version.
+    const CRUISE_SPEED=1000,COURSE_LENGTH=242000;
+    // Keep existing landmarks at their calibrated positions. Only the finish straight grew.
+    const COURSE_SCALE=214500/175500;
     const courseDistance=distance=>distance*COURSE_SCALE;
     const SPEEDS=Object.freeze([0,.25,.5,.75,1].map(fraction=>fraction*CRUISE_SPEED));
     const ACCELERATION=CRUISE_SPEED/5.5,BRAKING=CRUISE_SPEED/2.75,WORLD_SCALE=.008,WHEEL_RADIUS=24.975*WORLD_SCALE/.35;
     const START_COUNTDOWN=4.6,LOOK_AHEAD=courseDistance(10500),STEP=1/120,EPS=1e-8;
     const LANE_OFFSETS=Object.freeze([0]),ROAD_LANE=-15,ROAD_LANE_SPACING=0;
-    const BOOST_SECONDS=6,BOOST_MULTIPLIER=1.25,COACH_OFFSET=900;
+    const COACH_OFFSET=900;
+    const SPEED_STEP_PERCENT=25,MAX_SPEED_PERCENT=150;
+    const SPEED_UNIT=CRUISE_SPEED/100,TOP_SPEED=SPEED_UNIT*MAX_SPEED_PERCENT;
     const NEW_JOBS=Object.freeze(['repairs','rocks','coal','level-crossing']);
     const UNIT_JOBS=Object.freeze({repairs:{prefix:'sleeper',count:3,seconds:1.5},rocks:{prefix:'rock',count:2,seconds:2},coal:{prefix:'coal',count:3,seconds:1}});
     const JOB_DISTANCES=Object.freeze([12000,26000,52000,66600,94700,118600,143000,160600].map(courseDistance));
@@ -78,7 +78,6 @@
         'race.flight.terrain.wet':'Fly steadily through the wind and rain above the lake.',
         'race.ready':'Ready.','race.steady':'Steady.','race.go':'Go! Let’s help along the way.',
         'race.cruise':'Off we go! Our next job is ahead.',
-        'race.boost':'Well done! A speed boost!',
         'race.delivery.passengers':'Take our passengers to their station.','race.delivery.cargo':'Take our container to its new home.',
         'race.service.passenger-load':'Let’s welcome the passengers aboard.','race.service.passenger-unload':'We’ve arrived. Help our passengers step off.',
         'race.service.cargo-select':'Choose a container for our journey.','race.service.cargo-load':'Let’s use the crane to load our container.',
@@ -232,7 +231,7 @@
     }
     function vehicle(services,sections){
         return {distance:0,velocity:0,targetVelocity:0,gear:4,wheelTurns:0,finishTime:null,
-            boostRemaining:0,boostActive:false,_travelledWorld:0,service:null,_npcNextAction:null,
+            _travelledWorld:0,service:null,_npcNextAction:null,
             terrainStates:sections.filter(s=>s.cap<1).map(s=>({id:s.id,completed:false})),
             serviceStates:services.map(s=>({...s,phase:'approach',processed:false,completed:false,unitsDone:0,
                 groups:[false,false,false],selectedContainer:null,activeUnit:null,targetId:null,
@@ -253,7 +252,7 @@
         if(playerId===opponentId)throw new RangeError('Players must be different characters');
         const random=seeded(seed),services=makeServices(deliveryTheme,courseId,random),sections=COURSES[courseId].sections;
         return {courseId,playerId,opponentId,seed:seed>>>0,deliveryTheme,phase:'countdown',countdown:START_COUNTDOWN,elapsed:0,
-            player:vehicle(services,sections),rival:vehicle(services,sections),services,winner:null,rewarded:false,
+            player:{...vehicle(services,sections),speedPercent:0},rival:vehicle(services,sections),services,winner:null,rewarded:false,
             profile:makeProfile(services,random),events:[{type:'narration',key:'race.ready'}],_fixedRemainder:0};
     }
     function announce(race,v,type,key,extra={}){race.events.push({type:v===race.rival?`rival-${type}`:type,key:v===race.rival?null:key,...extra});}
@@ -271,10 +270,6 @@
         return`race.service.${s.type}`;
     }
     function beginWork(race,v,s,duration,targetId=null){s.phase='working';s.duration=duration;s.remaining=duration;s.progress=0;s.startedAt=race.elapsed;s.lastActionAt=race.elapsed;s.hinted=false;s.targetId=targetId;v._npcNextAction=null;announce(race,v,'service-action',s.type==='animals'?taskKey(s,race,v):null,{serviceId:s.id,targetId});}
-    function earnBoost(race,v,completionId,terrain=false){
-        v.boostRemaining+=BOOST_SECONDS;
-        announce(race,v,'boost-earned',terrain?'race.boost':null,{completionId,seconds:BOOST_SECONDS});
-    }
     function beginCargoHandling(race,v,s,phase){
         s.phase=phase;s.remaining=CARGO_HANDLING_SECONDS;s.handlingProgress=0;s.lastActionAt=race.elapsed;s.hinted=false;v._npcNextAction=null;
         announce(race,v,'cargo-handling',taskKey(s,race,v),{serviceId:s.id});
@@ -282,7 +277,9 @@
     function finishService(race,v,s){
         if(s.completed)return;
         if(s.cargoHandling&&s.phase!=='cargo-lifting'){s.workComplete=true;s.activeUnit=null;s.targetId=null;beginCargoHandling(race,v,s,'cargo-lifting');return;}
-        earnBoost(race,v,s.id);s.phase='complete';s.processed=s.completed=true;s.progress=1;s.remaining=0;s.activeUnit=null;s.targetId=null;s.completedAt=race.elapsed;v.service=null;v._npcNextAction=null;announce(race,v,'service-done','race.service.done',{serviceId:s.id,serviceType:s.type});
+        s.phase='complete';s.processed=s.completed=true;s.progress=1;s.remaining=0;s.activeUnit=null;s.targetId=null;s.completedAt=race.elapsed;v.service=null;v._npcNextAction=null;
+        if(v===race.player)v.speedPercent=0;
+        announce(race,v,'service-done','race.service.done',{serviceId:s.id,serviceType:s.type});
     }
     function serviceActionFor(race,v,targetId){const s=v.service;if(race.phase!=='racing'||!s||s.phase!=='ready'||v.velocity>EPS)return false;
         if(s.type==='animals'&&getCharacter(race,v).vehicleType==='air'&&(targetId==null||targetId==='animals'))return whistleFor(race,v);
@@ -339,7 +336,7 @@
         const v=racer(race,who),extra=getCharacter(race,v).flightZoneExtension;
         if(travelSectionsCache.has(v))return travelSectionsCache.get(v);
         // Flight checkpoints continue beyond the ground obstacle. The helicopter
-        // must clear that route, including its tail, before earning its reward.
+        // stays under the speed limit until its tail clears the route.
         const sections=Object.freeze([...COURSES[race.courseId].sections,...v.serviceStates.filter(s=>s.type==='level-crossing').map(s=>({id:s.id,type:s.type,start:s.at,end:s.at+1400,cap:.5}))].map(s=>Object.freeze(extra&&s.cap<1?{...s,end:s.end+extra}:s)));
         travelSectionsCache.set(v,sections);return sections;
     }
@@ -347,38 +344,54 @@
         const rear=v.distance-getCoachOffset(race,v)-getCharacter(race,v).coachRear;
         return getTravelSections(race,v).find(s=>s.cap<1&&v.distance>=s.start&&rear<=s.end)||null;
     }
-    function automaticTarget(race,v){
-        let target=SPEEDS[4]*(v.boostRemaining>EPS?BOOST_MULTIPLIER:1);
+    function routeSpeedLimit(race,v){
+        let limit=Infinity;
         const rear=v.distance-getCoachOffset(race,v)-getCharacter(race,v).coachRear;
         for(const s of getTravelSections(race,v)){
             if(s.cap>=1||rear>s.end)continue;
             const cap=SPEEDS[4]*s.cap;
-            target=Math.min(target,v.distance>=s.start?cap:Math.sqrt(cap*cap+2*BRAKING*Math.max(0,s.start-v.distance-50)));
+            limit=Math.min(limit,v.distance>=s.start?cap:Math.sqrt(cap*cap+2*BRAKING*Math.max(0,s.start-v.distance-50)));
         }
         const next=v.serviceStates.find(s=>!s.completed);
-        if(next)target=Math.min(target,Math.sqrt(2*BRAKING*Math.max(0,next.at-v.distance)));
-        return {target};
+        if(next)limit=Math.min(limit,Math.sqrt(2*BRAKING*Math.max(0,next.at-v.distance)));
+        return limit;
+    }
+    function nextSpeedPercent(v){
+        const grade=Math.floor((v.speedPercent+EPS)/SPEED_STEP_PERCENT)+1;
+        return Math.min(MAX_SPEED_PERCENT,grade*SPEED_STEP_PERCENT);
+    }
+    function canSpeedUp(race){
+        const v=race.player;
+        return race.phase==='racing'&&!v.service&&v.speedPercent<MAX_SPEED_PERCENT&&
+            nextSpeedPercent(v)*SPEED_UNIT<=routeSpeedLimit(race,v)+EPS;
+    }
+    function adjustSpeed(race,direction){
+        if(direction!==1||!canSpeedUp(race))return false;
+        race.player.speedPercent=nextSpeedPercent(race.player);
+        return true;
     }
     function motion(v,target,dt){const acceleration=target>v.velocity?ACCELERATION:target<v.velocity?-BRAKING:0,reach=acceleration?Math.abs((target-v.velocity)/acceleration):Infinity,t=Math.min(dt,reach),firstDistance=v.velocity*t+acceleration*t*t/2;return{travelled:firstDistance+(dt-t)*target,velocity:acceleration?(dt>=reach?target:v.velocity+acceleration*dt):v.velocity,timeAt(distance){if(distance<=EPS)return 0;if(distance<=firstDistance+EPS)return acceleration?(Math.sqrt(Math.max(0,v.velocity*v.velocity+2*acceleration*distance))-v.velocity)/acceleration:distance/Math.max(EPS,v.velocity);return t+(distance-firstDistance)/Math.max(EPS,target);}};}
-    function move(race,v,dt){
+    function move(race,v,dt,accelerating=false){
         const finishedBefore=v.finishTime!==null,c=COURSES[race.courseId];
         if(finishedBefore&&v.distance>=c.length+2500){v.velocity=v.targetVelocity=0;return;}
-        if(v.service){v.velocity=v.targetVelocity=0;v.boostActive=false;updateService(race,v,dt);return;}
-        const before=v.distance,beforeVelocity=v.velocity,{target}=automaticTarget(race,v),m=motion(v,target,dt);
+        if(v.service){v.velocity=v.targetVelocity=0;updateService(race,v,dt);return;}
+        const before=v.distance,beforeVelocity=v.velocity;
+        const requested=v===race.rival?TOP_SPEED:Math.min(TOP_SPEED,
+            Math.max(v.speedPercent*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
+        const target=Math.min(requested,routeSpeedLimit(race,v)),m=motion(v,target,dt);
+        // Braking lowers the player's speed setting. Only Up can raise it again.
+        if(v===race.player&&(accelerating||target<requested))v.speedPercent=target/SPEED_UNIT;
         v.targetVelocity=target;v.distance+=m.travelled;v.velocity=m.velocity;
-        const eligible=v.boostRemaining>EPS&&target>SPEEDS[4]+EPS&&target>=beforeVelocity-EPS;
-        const boostedSeconds=eligible?Math.max(0,dt-Math.max(0,(SPEEDS[4]-beforeVelocity)/ACCELERATION)):0;
-        v.boostRemaining=Math.max(0,v.boostRemaining-boostedSeconds);
-        v.boostActive=eligible&&v.velocity>SPEEDS[4]+EPS&&v.boostRemaining>EPS;
         const rear=v.distance-getCoachOffset(race,v)-getCharacter(race,v).coachRear,sections=getTravelSections(race,v);
         for(const state of v.terrainStates){
             const section=sections.find(s=>s.id===state.id);
-            if(!state.completed&&rear>section.end){state.completed=true;state.completedAt=race.elapsed;earnBoost(race,v,state.id,true);}
+            if(!state.completed&&rear>section.end){state.completed=true;state.completedAt=race.elapsed;}
         }
         const service=v.serviceStates.find(s=>!s.completed);
         if(service&&v.distance>=service.at-.05){
             v.distance=service.at;v.velocity=v.targetVelocity=0;service.phase='ready';service.lastActionAt=race.elapsed;
-            service.startedAt=race.elapsed;v.service=service;v.boostActive=false;
+            if(v===race.player)v.speedPercent=0;
+            service.startedAt=race.elapsed;v.service=service;
             // A sling load needs time on the ground. Both roles receive the
             // same cargo checks, independent of their actions and race position.
             service.cargoHandling=Boolean(v.carried.container&&CARGO_HANDLING_JOBS.includes(service.type)&&[race.playerId,race.opponentId].some(id=>character(id).vehicleType==='air'));
@@ -398,8 +411,8 @@
         v._travelledWorld+=Math.max(0,v.distance-before)*WORLD_SCALE;v.wheelTurns=v._travelledWorld/(Math.PI*2*WHEEL_RADIUS);
         if(v===race.player&&v.finishTime!==null)v.velocity=v.targetVelocity=0;
     }
-    function tick(race,dt){if(race.phase==='countdown'){const old=race.countdown;race.countdown=Math.max(0,old-dt);if(old>START_COUNTDOWN/2+EPS&&race.countdown<=START_COUNTDOWN/2+EPS)race.events.push({type:'narration',key:'race.steady'});if(race.countdown<=EPS){race.countdown=0;race.phase='racing';race.events.push({type:'narration',key:'race.go'},{type:'delivery-goal',key:`race.${getCharacter(race).vehicleType==='air'?'flight.':''}delivery.${race.deliveryTheme}`});}return;}if(race.phase!=='racing')return;updateRivalIntentions(race);move(race,race.player,dt);if(race.elapsed>=race.profile.startDelay)move(race,race.rival,dt);race.elapsed+=dt;if(race.player.finishTime!==null){const other=race.rival.finishTime;race.winner=other===null||race.player.finishTime<other-.05?'player':Math.abs(race.player.finishTime-other)<=.05?'tie':'rival';race.finishMotion={rivalVelocity:race.rival.velocity,rivalTarget:race.rival.targetVelocity};race.phase='complete';for(const v of[race.player,race.rival]){v.velocity=v.targetVelocity=0;v.boostActive=false;}race.events.push({type:'complete',key:`race.complete.${race.winner==='player'?'win':race.winner==='tie'?'tie':'lose'}`});}}
-    function step(race,dt){if(!Number.isFinite(dt)||dt<=0||race.phase==='complete')return false;race._fixedRemainder+=dt;const ticks=Math.floor((race._fixedRemainder+EPS)/STEP);race._fixedRemainder-=ticks*STEP;if(race._fixedRemainder<0&&race._fixedRemainder>-EPS)race._fixedRemainder=0;for(let i=0;i<ticks&&race.phase!=='complete';i++)tick(race,STEP);return true;}
+    function tick(race,dt,accelerating){if(race.phase==='countdown'){const old=race.countdown;race.countdown=Math.max(0,old-dt);if(old>START_COUNTDOWN/2+EPS&&race.countdown<=START_COUNTDOWN/2+EPS)race.events.push({type:'narration',key:'race.steady'});if(race.countdown<=EPS){race.countdown=0;race.phase='racing';race.events.push({type:'narration',key:'race.go'},{type:'delivery-goal',key:`race.${getCharacter(race).vehicleType==='air'?'flight.':''}delivery.${race.deliveryTheme}`});}return;}if(race.phase!=='racing')return;updateRivalIntentions(race);move(race,race.player,dt,accelerating);if(race.elapsed>=race.profile.startDelay)move(race,race.rival,dt);race.elapsed+=dt;if(race.player.finishTime!==null){const other=race.rival.finishTime;race.winner=other===null||race.player.finishTime<other-.05?'player':Math.abs(race.player.finishTime-other)<=.05?'tie':'rival';race.finishMotion={rivalVelocity:race.rival.velocity,rivalTarget:race.rival.targetVelocity};race.phase='complete';for(const v of[race.player,race.rival]){v.velocity=v.targetVelocity=0;}race.events.push({type:'complete',key:`race.complete.${race.winner==='player'?'win':race.winner==='tie'?'tie':'lose'}`});}}
+    function step(race,dt,accelerating=false){if(!Number.isFinite(dt)||dt<=0||race.phase==='complete')return false;race._fixedRemainder+=dt;const ticks=Math.floor((race._fixedRemainder+EPS)/STEP);race._fixedRemainder-=ticks*STEP;if(race._fixedRemainder<0&&race._fixedRemainder>-EPS)race._fixedRemainder=0;for(let i=0;i<ticks&&race.phase!=='complete';i++)tick(race,STEP,accelerating);return true;}
     // Presentation owns its copy and clock. It may finish the rival's remaining
     // jobs, but never writes to the completed race or its persisted rewards.
     function finishRunout(race,who='player'){
@@ -420,7 +433,7 @@
         return copy;
     }
     function presentFinishers(race){
-        for(const who of ['player','rival']){const arrival=finishArrival(race,who);if(arrival)Object.assign(race[who],{distance:arrival.distance,velocity:arrival.velocity,wheelTurns:arrival.wheelTurns,targetVelocity:0,boostActive:false});}
+        for(const who of ['player','rival']){const arrival=finishArrival(race,who);if(arrival)Object.assign(race[who],{distance:arrival.distance,velocity:arrival.velocity,wheelTurns:arrival.wheelTurns,targetVelocity:0});}
         return race;
     }
     function createFinishPresentation(race){
@@ -465,13 +478,13 @@
             taskKey:key,instructionKey:key,taskText:NARRATION[key],completed:v.serviceStates.filter(s=>s.completed).length,total:race.services.length,
             progress:clamp(v.distance/course.length,0,1),rivalProgress:clamp(race.rival.distance/course.length,0,1),
             position:v.distance+EPS>=race.rival.distance?1:2,gap:v.distance-race.rival.distance,
-            boostRemaining:v.boostRemaining,boostActive:v.boostActive,boostQueued:v.boostRemaining>EPS&&!v.boostActive,
+            canSpeedUp:canSpeedUp(race),
             countdown:race.countdown,mph:v.velocity/SPEEDS[4]*100,winner:race.winner,elapsed:race.elapsed,
-            guidancePhase:service?'service':'preview',safeMaxMph:terrain?terrain.cap*100:BOOST_MULTIPLIER*100};
+            guidancePhase:service?'service':'preview',safeMaxMph:terrain?terrain.cap*100:MAX_SPEED_PERCENT};
     }
     globalThis.ThomasRaceCore=Object.freeze({CRUISE_SPEED,COURSE_SCALE,courseDistance,SPEEDS,ACCELERATION,BRAKING,WORLD_SCALE,WHEEL_RADIUS,START_COUNTDOWN,LOOK_AHEAD,
-        LANE_OFFSETS,ROAD_LANE,ROAD_LANE_SPACING,RIVAL_LANE:ROAD_LANE,BOOST_SECONDS,BOOST_MULTIPLIER,COACH_OFFSET,NEW_JOBS,JOB_DISTANCES,
-        RIVAL_PARAMETERS,CARGO_HANDLING_SECONDS,BRANCH_LIFT_SECONDS,getBranchLiftSeconds,getBranchLiftPose,CHARACTERS,OPPONENTS,character,getCharacter,COURSES,RULES,NARRATION,chooseRace,createRace,serviceAction,cleanMud,whistle,step,getView,
+        LANE_OFFSETS,ROAD_LANE,ROAD_LANE_SPACING,RIVAL_LANE:ROAD_LANE,COACH_OFFSET,NEW_JOBS,JOB_DISTANCES,
+        RIVAL_PARAMETERS,CARGO_HANDLING_SECONDS,BRANCH_LIFT_SECONDS,getBranchLiftSeconds,getBranchLiftPose,CHARACTERS,OPPONENTS,character,getCharacter,COURSES,RULES,NARRATION,chooseRace,createRace,serviceAction,cleanMud,whistle,step,getView,adjustSpeed,
         finishRunout,finishArrival,createFinishPresentation,stepFinishPresentation,skipFinishPresentation,getPresentationRace,
         sampleRoute,sampleTerrainHeight,sampleLaneRoute,sampleRivalLaneRoute,sampleVehicleRoute,sampleCoachRoute,getCoachOffset,getFlightPose,getTravelSections,getCrossingMode});
 })();

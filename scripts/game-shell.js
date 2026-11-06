@@ -75,6 +75,7 @@
                 return start({playerId,opponentId,courseId,deliveryTheme,seed});
             }
             if(state.phase==='complete')return false;
+            if(action==='accelerate')return ThomasRaceCore.adjustSpeed(state.race,1);
             if(action==='whistle'){ThomasRaceCore.whistle(state.race);syncRace();return true;}
             if(action==='race-help'||action==='race-clean-spot'){
                 const accepted=action==='race-help'?ThomasRaceCore.serviceAction(state.race,payload):ThomasRaceCore.cleanMud(state.race,Number(payload));
@@ -82,9 +83,9 @@
             }
             return false;
         }
-        function step(seconds){
+        function step(seconds,accelerating=false){
             if(!Number.isFinite(seconds)||seconds<=0||state.screen!=='play'||state.paused||!state.race||state.phase==='complete')return false;
-            ThomasRaceCore.step(state.race,seconds);syncRace();return true;
+            ThomasRaceCore.step(state.race,seconds,accelerating);syncRace();return true;
         }
         return{state,dispatch,step,save};
     }

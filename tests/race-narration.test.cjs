@@ -83,7 +83,7 @@ const deliveryPhrases = {
 
 test('rival choices, railway challenges, delivery jobs and results are all voiced', () => {
     for (const key of ['race.menu', 
-        'race.ready', 'race.steady', 'race.go', 'race.cruise', 'race.boost','race.service.repairs','race.service.rocks','race.service.coal','race.service.level-crossing',
+        'race.ready', 'race.steady', 'race.go', 'race.cruise', 'race.service.repairs','race.service.rocks','race.service.coal','race.service.level-crossing',
         'race.complete.win', 'race.complete.lose', 'race.complete.tie',
         'race.unavailable', ...Object.keys(deliveryPhrases)]) assert.ok(clips[key]?.data, key);
 });
@@ -91,14 +91,12 @@ test('rival choices, railway challenges, delivery jobs and results are all voice
 test('delivery narration describes useful actions without manual driving or hardware instructions', () => {
     assert.equal(clips['race.go'].text, 'Go! Let’s help along the way.');
     assert.equal(clips['race.cruise'].text, 'Off we go! Our next job is ahead.');
-    assert.equal(clips['race.boost'].text, 'Well done! A speed boost!');
     for (const [key, phrase] of Object.entries(deliveryPhrases)) assert.equal(clips[key].text, phrase, key);
     for (const key of Object.keys(clips).filter(key => key.startsWith('race.'))) {
         assert.doesNotMatch(key, /(?:^race\.(?:preview|rule|act|track)\.|recovery|steady-speed|^race\.(?:mud|barrier|switch)$)/, `${key}: obsolete racing tasks are removed`);
         assert.doesNotMatch(clips[key].text, /\b(?:brak(?:e|es|ing)|accelerat\w*|gears?|fast(?:er)?)\b/i, `${key}: Thomas handles driving automatically`);
         assert.doesNotMatch(clips[key].text, /\b(?:retry|choose which|which track|stars?|change tracks)\b/i, `${key}: no stopped quiz or retired track-switching task remains`);
     }
-    assert.ok(clips['race.boost'].duration < 5, 'occasional encouragement is brief at the established slow pace');
     assert.ok(clips['race.go'].duration < 8, 'the introduction finishes before the first railway job');
     for (const key of Object.keys(deliveryPhrases)) assert.ok(clips[key].duration < 8, `${key}: a short task suitable for a non-reading child`);
 });

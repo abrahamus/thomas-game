@@ -91,6 +91,7 @@ test('engines, tenders, coaches and buses pass the open sheep gate without mesh 
     const { race, scene, slots, spec } = fixture(opponent, 'mountain');
     Core.whistle(race);
     while (Math.min(race.player.distance, race.rival.distance) < spec.at + 3200) {
+      while (Core.adjustSpeed(race, 1)) {}
       Core.step(race, .1);
       View.updateScene(scene, race);
       for (const slot of slots) {

@@ -34,7 +34,7 @@ test('all crossing equivalents wait for one activation, keep five seconds, and r
   R.step(r,1);assert.equal(s.phase,'ready');assert.equal(r.player.velocity,0);
   assert.equal(R.serviceAction(r,'crossing'),true);assert.equal(s.duration,5);assert.equal(R.serviceAction(r,'crossing'),false);
   R.step(r,4.9);assert.equal(s.completed,false);R.step(r,.1);assert.equal(s.completed,true);assert.equal(r.player.carried.container,'container-1');
-  assert.equal(R.serviceAction(r,'crossing'),false);assert.equal(r.events.filter(e=>e.type==='boost-earned'&&e.completionId===s.id).length,1);V.disposeScene(b);
+  assert.equal(R.serviceAction(r,'crossing'),false);assert.equal(r.events.filter(e=>e.type==='service-done'&&e.serviceId===s.id).length,1);V.disposeScene(b);
  }
 });
 test('Harold holds his cargo, air traffic stays clear, and radio/road controls remain reachable',()=>{

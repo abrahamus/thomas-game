@@ -436,7 +436,7 @@ test('all embedded narration is valid mono PCM and covers adventure, gears, wash
     for (const key of ['ui.pause','ui.resume','ui.whistle','ui.album.empty']) assert.ok(assets[key],key);
     assert.ok(!Object.keys(assets).some(key=>/^(drive|challenge|gear|menu)\./.test(key)), 'Retired 2D narration is absent');
     for (const key of ['race.menu', 
-        'race.ready', 'race.steady', 'race.go', 'race.cruise', 'race.boost', 'race.service.repairs', 'race.service.rocks', 'race.service.coal', 'race.service.level-crossing',
+        'race.ready', 'race.steady', 'race.go', 'race.cruise', 'race.service.repairs', 'race.service.rocks', 'race.service.coal', 'race.service.level-crossing',
         'race.delivery.passengers','race.delivery.cargo','race.service.passenger-load','race.service.passenger-unload',
         'race.service.cargo-select','race.service.cargo-load','race.service.cargo-unload','race.service.animals',
         'race.service.animals-wait','race.service.wash','race.service.water','race.service.tree','race.service.drawbridge','race.service.done',

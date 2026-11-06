@@ -10,7 +10,7 @@ const ui = {
     audioUnlocked:false,windowActive:true,task:'',taskKey:'',emoji:'🚂',lastGeneration:-1,
     festival:null,finishWelcomed:false,menuIndex:0,openPicker:null,albumOpen:false,speaking:false,time:0,whistle:0,lastTimestamp:null,
     pendingSpeech:null,hoverNode:null,hoverDeadline:null,suppressFocus:false,lastAnnouncement:'',
-    raceView:null,raceUnavailable:false,raceLayoutKey:'',raceVoiceKey:null,racePraiseAt:-Infinity
+    raceView:null,raceUnavailable:false,raceLayoutKey:'',raceVoiceKey:null,upHeld:false,pedalPointer:null,ignorePedalClick:false
 };
 if (!globalThis.ThomasNarration) {
     try { globalThis.ThomasNarration = JSON.parse(document.getElementById('narration-data').textContent); }
@@ -51,7 +51,6 @@ function raceVoicePriority(key) {
     if(/^race\.(?:ready|steady|go)$/.test(key))return 80;
     if(serviceVoice(key))return 50;
     if(/^race\.(?:flight\.)?delivery\./.test(key))return 40;
-    if(key==='race.boost')return 10;
     return 0;
 }
 function raceSpeechRelevant(key) {
@@ -61,7 +60,6 @@ function raceSpeechRelevant(key) {
     if(/^race\.festival\./.test(key))return !!ui.festival && key===festivalKey();
     if(serviceVoice(key))return key==='race.service.done'?!view.currentService:key===view.taskKey;
     if(/^race\.(?:flight\.)?delivery\./.test(key))return state.phase==='racing' && !view.currentService;
-    if(key==='race.boost')return raceVoicePriority(ui.raceVoiceKey || '')<40 && state.phase==='racing' && !view.currentService;
     return true;
 }
 function say(text,key,{allowPaused=false,queue=false}={}) {
@@ -98,8 +96,9 @@ function task(text,emoji,key='') {
     }
 }
 function clearTransientPictures() {
+    releasePedal();
     audio.stop();if(music)music.stop({reset:true});
-    Object.assign(ui,{festival:null,finishWelcomed:false,raceVoiceKey:null,raceLayoutKey:'',racePraiseAt:-Infinity,whistle:0,pendingSpeech:null,hoverNode:null,hoverDeadline:null,lastAnnouncement:'',lastTimestamp:null});
+    Object.assign(ui,{festival:null,finishWelcomed:false,raceVoiceKey:null,raceLayoutKey:'',whistle:0,pendingSpeech:null,hoverNode:null,hoverDeadline:null,lastAnnouncement:'',lastTimestamp:null});
 }
 function menuButtons() {
     const id=ui.albumOpen?'albumOverlay':state.paused?'pauseOverlay':state.screen==='race-start'?'raceStartOverlay':ui.festival?.results?'rewardOverlay':null;
@@ -222,6 +221,14 @@ function advanceFestival(seconds){
 function renderRacePresentation() {
     const race=state.race;if(!race)return;
     const view=ThomasRaceCore.getView(race),service=view.currentService;
+    const driving=active(),up=$('action-accelerate');
+    up.disabled=!driving||!view.canSpeedUp;
+    const mph=Math.round(view.mph),reading=$('speedReading');
+    $('speedNeedle').setAttribute('transform',`rotate(${-135+Math.min(150,view.mph)*1.8} 50 50)`);
+    if(reading.textContent!==String(mph)){
+        reading.textContent=String(mph);
+        up.setAttribute('aria-label',`Speed up. Current speed ${mph} miles per hour.`);
+    }
     const working=service?.phase==='working',handling=service?.phase==='cargo-lowering'||service?.phase==='cargo-lifting';
     const help=$('action-race-help'),hasHelp=!!service && service.type!=='animals';
     show('action-race-help',hasHelp);
@@ -246,18 +253,14 @@ function renderRacePresentation() {
     if(serviceVoice(ui.raceVoiceKey) && !raceSpeechRelevant(ui.raceVoiceKey)){
         audio.stopNarration();ui.raceVoiceKey=null;ui.pendingSpeech=null;
     }
-    const events=race.phase==='complete'?[]:race.events.splice(0),lastReward=events.findLast(event=>event.type==='boost-earned');
+    const events=race.phase==='complete'?[]:race.events.splice(0);
     for(const event of events){
         if(event.type.startsWith('rival-') || event.vehicle==='rival' || event.who==='rival')continue;
         if(event.type==='complete')continue;
-        if(event===lastReward)playStarChime();
+        if(event.type==='service-done')playStarChime();
         if(!event.key)continue;
         if(event.type==='service-action')continue;
         if(event.type==='service-hint' && audio.busy && ui.raceVoiceKey===event.key)continue;
-        if(event.key==='race.boost'){
-            if(event!==lastReward||race.elapsed-ui.racePraiseAt<12||audio.busy||service)continue;
-            ui.racePraiseAt=race.elapsed;
-        }
         say(words(event.key),event.key,{queue:event.type==='delivery-goal'});
     }
     if(race.rival.finishEvent&&!ui.finishWelcomed){ui.finishWelcomed=true;if(!ui.festival)audio.effect('applause');}
@@ -286,8 +289,9 @@ function render() {
     show('festivalHud',completed&&!state.paused&&!ui.albumOpen);show('skipCelebration',completed&&!results);
     $('footerDashboard').classList.toggle('festival-footer',completed);
     show('footerDashboard',playing&&!results);show('action-whistle',playing&&!results);
+    show('action-accelerate',playing&&!completed);
     document.querySelector('[data-action="pause"]').hidden=!playing;
-    $('statusText').textContent=playing?'Help with jobs and earn speed boosts.':'';
+    $('statusText').textContent=playing?'Use Up to start and speed up. Help at each stop.':'';
     if(playing){
         const character=ThomasRaceCore.getCharacter(state.race),signal=character.power==='rotor'?'radio':character.power==='diesel'?'horn':'whistle';
         $('pausePortrait').setAttribute('href',`#${character.portrait}`);$('pauseTitle').textContent=`${character.name} is having a rest`;
@@ -305,6 +309,7 @@ function render() {
 }
 
 function pause() {
+    releasePedal();
     audio.stop();if(music)music.stop();ui.lastTimestamp=null;ui.pendingSpeech=null;ui.hoverNode=null;ui.hoverDeadline=null;
     if(state.screen!=='play')return;
     if(state.paused){render();return;}
@@ -372,9 +377,34 @@ function dispatchAction(action,payload) {
     return true;
 }
 
+function releasePedal(){
+    ui.upHeld=false;
+    ui.pedalPointer=null;
+}
+document.addEventListener('pointerdown',event=>{
+    if(event.isPrimary===false||ui.pedalPointer!==null)return;
+    ui.ignorePedalClick=false;
+    const pedal=$('action-accelerate');
+    if(event.button!==0||!active()||pedal.disabled||pedal.hidden||
+        !pedal.contains(event.target)||!dispatchAction('accelerate'))return;
+    ui.pedalPointer=event.pointerId;
+    ui.ignorePedalClick=true;
+    pedal.setPointerCapture?.(event.pointerId);
+});
+function releasePointer(event){
+    if(ui.pedalPointer===event.pointerId)ui.pedalPointer=null;
+}
+for(const type of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(type,releasePointer);
+document.addEventListener('keyup',event=>{
+    if(event.key==='ArrowUp')ui.upHeld=false;
+});
 document.addEventListener('click',event=>{
     if(ui.openPicker&&!$(ui.openPicker+'PickerPanel').contains(event.target))setPicker(null,true);
-    const node=event.target.closest('[data-action]');if(!node || node.disabled || node.closest('[inert],[hidden]'))return;
+    const node=event.target.closest('[data-action]');
+    if(node?.dataset.action==='accelerate'&&event.detail>0&&ui.ignorePedalClick){
+        ui.ignorePedalClick=false;return;
+    }
+    if(!node || node.disabled || node.closest('[inert],[hidden]'))return;
     event.stopPropagation();dispatchAction(node.dataset.action,node.dataset.value);
     if(event.detail>0 && active() && !menuButtons().length)focusStage();
 });
@@ -421,7 +451,10 @@ document.addEventListener('keydown',event=>{
         event.preventDefault();if(ThomasRaceCore.getView(state.race).helpEnabled)dispatchAction('race-help');return;
     }
     if(driving && event.key===' ' && !event.target.closest('button')){event.preventDefault();dispatchAction('whistle');return;}
-    if(driving && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();return;}
+    if(driving && event.key==='ArrowUp'){
+        event.preventDefault();if(dispatchAction('accelerate'))ui.upHeld=true;return;
+    }
+    if(driving && ['ArrowLeft','ArrowRight','ArrowDown'].includes(event.key)){event.preventDefault();return;}
     const button=event.target.closest('button,[role="button"]');
     if(button){
         if(button.tagName.toLowerCase()!=='button' && (event.key===' '||event.key==='Enter')){
@@ -457,7 +490,8 @@ function frame(timestamp) {
         ui.time+=elapsed;ui.whistle=Math.max(0,ui.whistle-elapsed);
         if(ui.festival)advanceFestival(elapsed);
         else {
-            const before=state.phase;game.step(elapsed);
+            const before=state.phase;game.step(elapsed,ui.upHeld||ui.pedalPointer!==null);
+            if(state.race.player.service||state.phase==='complete')releasePedal();
             if(before!==state.phase){render();if(state.phase==='complete')focusStage();}
             else renderRacePresentation();
         }
