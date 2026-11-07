@@ -74,7 +74,7 @@ test('a completed job gives feedback once and waits for Up to depart',()=>{
   assert.equal(race.player.speedPercent,25);
   R.step(race,1);
   assert.equal(race.player.targetVelocity,250);
-  assert.ok(race.player.velocity>0&&race.player.velocity<250);
+  assert.ok(Math.abs(race.player.velocity-250)<1e-7);
 });
 
 test('each terrain section completes after the entire train clears, including both tunnels',()=>{
@@ -87,7 +87,7 @@ test('each terrain section completes after the entire train clears, including bo
   }
   assert.equal(race.phase,'complete');
   assert.equal(race.events.some(e=>e.type.includes('boost')),false);
-  assert.equal(race.player.terrainStates.filter(s=>s.completed).length,5);
+  assert.equal(race.player.terrainStates.filter(s=>s.completed).length,7);
   assert.equal(R.COURSES.country.sections.filter(s=>s.type==='tunnel').length,2);
 });
 
@@ -109,7 +109,7 @@ test('the rival independently completes all jobs and restricted sections',()=>{
   R.step(race,700);
   assert.equal(race.player.serviceStates.filter(s=>s.completed).length,0);
   assert.equal(race.rival.serviceStates.filter(s=>s.completed).length,8);
-  assert.equal(race.rival.terrainStates.filter(s=>s.completed).length,5);
+  assert.equal(race.rival.terrainStates.filter(s=>s.completed).length,7);
   assert.equal(race.events.filter(e=>e.type==='rival-service-done').length,8);
   assert.ok(race.rival.finishTime);
 });

@@ -47,7 +47,7 @@ for(const keyboard of [true,false])test(`complete muted ${keyboard?'keyboard-onl
  const result=complete(ui,keyboard);
  assert.equal(result.race.winner,'player');
  const duration=result.race.elapsed+ui.evaluate('ThomasRaceCore.START_COUNTDOWN');
- assert.ok(duration>=300 && duration<=380,`Continuous delivery duration: ${duration}s`);
+ assert.ok(duration>=265 && duration<=380,`Continuous delivery duration: ${duration}s`);
  assert.equal(result.race.player.serviceStates.filter(s=>s.completed).length,8);
  assert.equal(result.race.player.carried.passengers,0);assert.equal(result.race.player.carried.container,null);
  assert.equal(result.stars,3);assert.ok(result.stickers.includes('race-finisher'));
@@ -249,7 +249,7 @@ test('the train waits for Up without a start banner',()=>{
  assert.equal(ui.state().race.player.distance,0);
 });
 
-for(const deliveryTheme of ['passengers','cargo'])test(`six fresh Up presses after ${deliveryTheme} unloading reach top speed`,()=>{
+for(const deliveryTheme of ['passengers','cargo'])test(`Up resumes after ${deliveryTheme} unloading and reaches top speed after the final bend`,()=>{
  const ui=setup();start(ui);
  ui.evaluate(`{
     const r=ThomasRaceCore.createRace({deliveryTheme:'${deliveryTheme}'});
@@ -289,7 +289,12 @@ for(const deliveryTheme of ['passengers','cargo'])test(`six fresh Up presses aft
  }
  assert.equal(up.disabled,true);
  assert.equal(node(ui,'speedReading').textContent,'25');
- ui.frames(8,80);
+ for(let i=0;ui.state().race.player.velocity<1500-1e-7;i++){
+    assert.ok(i<200,'the player reaches top speed after the final bend');
+    if(!up.disabled)ui.key('ArrowUp');
+    ui.frames(.1,10);
+ }
+ ui.frames(.1,10);
  assert.equal(node(ui,'speedReading').textContent,'150');
  assert.equal(node(ui,'speedNeedle').getAttribute('transform'),'rotate(135 50 50)');
  const result=complete(ui);

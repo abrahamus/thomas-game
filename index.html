@@ -1464,7 +1464,7 @@ body{height:100dvh;overflow:hidden}
     const COURSE_SCALE=214500/175500;
     const courseDistance=distance=>distance*COURSE_SCALE;
     const SPEEDS=Object.freeze([0,.25,.5,.75,1].map(fraction=>fraction*CRUISE_SPEED));
-    const ACCELERATION=CRUISE_SPEED/5.5,BRAKING=CRUISE_SPEED/2.75,WORLD_SCALE=.008,WHEEL_RADIUS=24.975*WORLD_SCALE/.35;
+    const ACCELERATION=CRUISE_SPEED/4,BRAKING=CRUISE_SPEED/2.75,WORLD_SCALE=.008,WHEEL_RADIUS=24.975*WORLD_SCALE/.35;
     const START_COUNTDOWN=4.6,LOOK_AHEAD=courseDistance(10500),STEP=1/120,EPS=1e-8;
     const LANE_OFFSETS=Object.freeze([0]),ROAD_LANE=-15,ROAD_LANE_SPACING=0;
     const COACH_OFFSET=900;
@@ -1565,7 +1565,7 @@ body{height:100dvh;overflow:hidden}
         'race.rematch':'Race the same journey again.',
         'race.choose':'Choose your players.'
     });
-    const RULES=Object.freeze({bend:{name:'Bend',cap:1},'tight-bend':{name:'Bend',cap:1},hill:{name:'Climb',cap:.65},downhill:{name:'Downhill',cap:.60},tunnel:{name:'Tunnel',cap:.50},wet:{name:'Wet track',cap:.40},snow:{name:'Snow',cap:.55}});
+    const RULES=Object.freeze({bend:{name:'Bend',cap:.9,entryReduction:.1},'tight-bend':{name:'Bend',cap:.9,entryReduction:.1},hill:{name:'Climb',cap:.65},downhill:{name:'Downhill',cap:.60},tunnel:{name:'Tunnel',cap:.50},wet:{name:'Wet track',cap:.40},snow:{name:'Snow',cap:.55}});
     const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
     const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
     const smoother=t=>{t=clamp(t,0,1);return t*t*t*(t*(t*6-15)+10);};
@@ -1689,7 +1689,7 @@ body{height:100dvh;overflow:hidden}
     }
     function vehicle(services,sections){
         return {distance:0,velocity:0,targetVelocity:0,gear:4,wheelTurns:0,finishTime:null,
-            _travelledWorld:0,service:null,_npcNextAction:null,
+            _travelledWorld:0,service:null,_npcNextAction:null,entryBrakeTarget:null,
             terrainStates:sections.filter(s=>s.cap<1).map(s=>({id:s.id,completed:false})),
             serviceStates:services.map(s=>({...s,phase:'approach',processed:false,completed:false,unitsDone:0,
                 groups:[false,false,false],selectedContainer:null,activeUnit:null,targetId:null,
@@ -1802,12 +1802,18 @@ body{height:100dvh;overflow:hidden}
         const rear=v.distance-getCoachOffset(race,v)-getCharacter(race,v).coachRear;
         return getTravelSections(race,v).find(s=>s.cap<1&&v.distance>=s.start&&rear<=s.end)||null;
     }
+    function sectionSpeedLimit(section){
+        const baseSpeed=section.type==='level-crossing'?CRUISE_SPEED:TOP_SPEED;
+        return Math.round(baseSpeed*section.cap/SPEED_UNIT)*SPEED_UNIT;
+    }
     function routeSpeedLimit(race,v){
         let limit=Infinity;
         const rear=v.distance-getCoachOffset(race,v)-getCharacter(race,v).coachRear;
         for(const s of getTravelSections(race,v)){
             if(s.cap>=1||rear>s.end)continue;
-            const cap=SPEEDS[4]*s.cap;
+            const crossing=s.type==='level-crossing';
+            if(!crossing&&v.distance<s.start)continue;
+            const cap=sectionSpeedLimit(s);
             limit=Math.min(limit,v.distance>=s.start?cap:Math.sqrt(cap*cap+2*BRAKING*Math.max(0,s.start-v.distance-50)));
         }
         const next=v.serviceStates.find(s=>!s.completed);
@@ -1818,14 +1824,19 @@ body{height:100dvh;overflow:hidden}
         const grade=Math.floor((v.speedPercent+EPS)/SPEED_STEP_PERCENT)+1;
         return Math.min(MAX_SPEED_PERCENT,grade*SPEED_STEP_PERCENT);
     }
+    function nextAllowedSpeedPercent(race,v){
+        const next=nextSpeedPercent(v),limit=routeSpeedLimit(race,v)/SPEED_UNIT;
+        const terrain=activeTerrain(race,v);
+        if(terrain&&terrain.type!=='level-crossing')return Math.min(next,limit);
+        return next<=limit+EPS?next:v.speedPercent;
+    }
     function canSpeedUp(race){
         const v=race.player;
-        return race.phase==='racing'&&!v.service&&v.speedPercent<MAX_SPEED_PERCENT&&
-            nextSpeedPercent(v)*SPEED_UNIT<=routeSpeedLimit(race,v)+EPS;
+        return race.phase==='racing'&&!v.service&&v.entryBrakeTarget==null&&nextAllowedSpeedPercent(race,v)>v.speedPercent+EPS;
     }
     function adjustSpeed(race,direction){
         if(direction!==1||!canSpeedUp(race))return false;
-        race.player.speedPercent=nextSpeedPercent(race.player);
+        race.player.speedPercent=nextAllowedSpeedPercent(race,race.player);
         return true;
     }
     function motion(v,target,dt){const acceleration=target>v.velocity?ACCELERATION:target<v.velocity?-BRAKING:0,reach=acceleration?Math.abs((target-v.velocity)/acceleration):Infinity,t=Math.min(dt,reach),firstDistance=v.velocity*t+acceleration*t*t/2;return{travelled:firstDistance+(dt-t)*target,velocity:acceleration?(dt>=reach?target:v.velocity+acceleration*dt):v.velocity,timeAt(distance){if(distance<=EPS)return 0;if(distance<=firstDistance+EPS)return acceleration?(Math.sqrt(Math.max(0,v.velocity*v.velocity+2*acceleration*distance))-v.velocity)/acceleration:distance/Math.max(EPS,v.velocity);return t+(distance-firstDistance)/Math.max(EPS,target);}};}
@@ -1836,10 +1847,24 @@ body{height:100dvh;overflow:hidden}
         const before=v.distance,beforeVelocity=v.velocity;
         const requested=v===race.rival?TOP_SPEED:Math.min(TOP_SPEED,
             Math.max(v.speedPercent*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
-        const target=Math.min(requested,routeSpeedLimit(race,v)),m=motion(v,target,dt);
+        let target=Math.min(requested,routeSpeedLimit(race,v),v.entryBrakeTarget??Infinity);
+        const m=motion(v,target,dt);
+        v.distance+=m.travelled;
+        const entry=c.sections.find(s=>s.cap<1&&before<s.start&&v.distance>=s.start);
+        if(entry){
+            const timeToEntry=m.timeAt(entry.start-before);
+            const entryVelocity=motion(v,target,timeToEntry).velocity;
+            const reduction=entry.entryReduction??entry.cap;
+            target=Math.min(entryVelocity*(1-reduction),sectionSpeedLimit(entry));
+            v.entryBrakeTarget=target;
+            const braking=motion({velocity:entryVelocity},target,dt-timeToEntry);
+            v.velocity=braking.velocity;
+            v.distance=entry.start+braking.travelled;
+        }else v.velocity=m.velocity;
         // Braking lowers the player's speed setting. Only Up can raise it again.
-        if(v===race.player&&(accelerating||target<requested))v.speedPercent=target/SPEED_UNIT;
-        v.targetVelocity=target;v.distance+=m.travelled;v.velocity=m.velocity;
+        if(v===race.player&&(accelerating||target<requested||entry))v.speedPercent=target/SPEED_UNIT;
+        v.targetVelocity=target;
+        if(v.entryBrakeTarget!=null&&v.velocity<=v.entryBrakeTarget+EPS)v.entryBrakeTarget=null;
         const rear=v.distance-getCoachOffset(race,v)-getCharacter(race,v).coachRear,sections=getTravelSections(race,v);
         for(const state of v.terrainStates){
             const section=sections.find(s=>s.id===state.id);
@@ -1847,7 +1872,7 @@ body{height:100dvh;overflow:hidden}
         }
         const service=v.serviceStates.find(s=>!s.completed);
         if(service&&v.distance>=service.at-.05){
-            v.distance=service.at;v.velocity=v.targetVelocity=0;service.phase='ready';service.lastActionAt=race.elapsed;
+            v.distance=service.at;v.velocity=v.targetVelocity=0;v.entryBrakeTarget=null;service.phase='ready';service.lastActionAt=race.elapsed;
             if(v===race.player)v.speedPercent=0;
             service.startedAt=race.elapsed;v.service=service;
             // A sling load needs time on the ground. Both roles receive the
@@ -1921,11 +1946,12 @@ body{height:100dvh;overflow:hidden}
     function getView(race){
         const course=COURSES[race.courseId],v=race.player,service=v.service,nextService=v.serviceStates.find(s=>!s.completed),terrain=activeTerrain(race,v);
         let nextTask=nextService?{kind:'service',type:nextService.type,id:nextService.id,at:nextService.at,index:nextService.index}:null;
-        const landmark=getTravelSections(race,v).filter(s=>!s.id.startsWith('service-')).find(s=>s.cap<1&&!v.terrainStates.find(t=>t.id===s.id)?.completed);
+        const terrainKey=type=>`race.${getCharacter(race,v).vehicleType==='air'?'flight.':''}terrain.${type}`;
+        const landmark=getTravelSections(race,v).find(s=>NARRATION[terrainKey(s.type)]&&!v.terrainStates.find(t=>t.id===s.id)?.completed);
         if(!service&&landmark&&(!nextTask||landmark.start<nextTask.at))nextTask={kind:'terrain',...landmark,at:landmark.start};
         const completeKey=`race.complete.${race.winner==='player'?'win':race.winner==='tie'?'tie':'lose'}`;
         const key=race.phase==='complete'?completeKey:race.phase==='countdown'?(race.countdown>START_COUNTDOWN/2?'race.ready':'race.steady'):
-            service?taskKey(service,race,v):nextTask?.kind==='terrain'?`race.${getCharacter(race,v).vehicleType==='air'?'flight.':''}terrain.${nextTask.type}`:
+            service?taskKey(service,race,v):nextTask?.kind==='terrain'?terrainKey(nextTask.type):
             nextService?.type.startsWith('passenger-')||nextService?.type.startsWith('cargo-')?`race.${getCharacter(race,v).vehicleType==='air'?'flight.':''}delivery.${race.deliveryTheme}`:nextService?taskKey(nextService,race,v):'race.cruise';
         const opponent=character(race.opponentId),player=character(race.playerId);
         return {course,player,opponent,winnerId:race.winner==='player'?race.playerId:race.winner==='rival'?race.opponentId:null,opponentName:opponent.name,deliveryTheme:race.deliveryTheme,phase:race.phase,
@@ -1938,7 +1964,7 @@ body{height:100dvh;overflow:hidden}
             position:v.distance+EPS>=race.rival.distance?1:2,gap:v.distance-race.rival.distance,
             canSpeedUp:canSpeedUp(race),
             countdown:race.countdown,mph:v.velocity/SPEEDS[4]*100,winner:race.winner,elapsed:race.elapsed,
-            guidancePhase:service?'service':'preview',safeMaxMph:terrain?terrain.cap*100:MAX_SPEED_PERCENT};
+            guidancePhase:service?'service':'preview',safeMaxMph:terrain?sectionSpeedLimit(terrain)/SPEED_UNIT:MAX_SPEED_PERCENT};
     }
     globalThis.ThomasRaceCore=Object.freeze({CRUISE_SPEED,COURSE_SCALE,courseDistance,SPEEDS,ACCELERATION,BRAKING,WORLD_SCALE,WHEEL_RADIUS,START_COUNTDOWN,LOOK_AHEAD,
         LANE_OFFSETS,ROAD_LANE,ROAD_LANE_SPACING,RIVAL_LANE:ROAD_LANE,COACH_OFFSET,NEW_JOBS,JOB_DISTANCES,

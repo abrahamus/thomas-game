@@ -27,7 +27,7 @@ else test('Delivery races:90 ordered pairs × 3 courses × 25 seeds × 4 strateg
         assert.ok(result.wins.ordinary>=result.wins.defaultSpeed,'Raising the speed cannot reduce wins');
         assert.ok(result.wins.slower<=result.wins.ordinary,'Slower washing cannot help the player win');
         assert.ok(result.wins.all>result.wins.ordinary&&result.wins.all>=22,'Fast play is rewarded with more wins');
-        assert.ok(result.minOrdinaryBaseSeconds>=310&&result.maxOrdinaryBaseSeconds<=385,'Ordinary rounds include the longer finish straight and exclude cargo-handling and branch-lift allowances');
+        assert.ok(result.minOrdinaryBaseSeconds>=280&&result.maxOrdinaryBaseSeconds<=385,'Ordinary rounds include the longer finish straight and exclude cargo-handling and branch-lift allowances');
     })))));
     t.diagnostic(`Ordinary at 100%: player ${defaultWins}, computer ${defaultComputerWins}, ties ${defaultTies} (${total} races)`);
     t.diagnostic(`Ordinary at 150%: player ${ordinaryWins}, computer ${ordinaryComputerWins}, ties ${ordinaryTies} (${total} races)`);
