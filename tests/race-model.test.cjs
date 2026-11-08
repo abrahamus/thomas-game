@@ -193,3 +193,67 @@ test('Approaching delivery stops repeat the journey goal; arrival uses the job i
 test('Once-onlyfinishrecordsresultandfreezeswithoutduplicatingcompletion',()=>{
     const r=drive(R,{});const before=json(r),finish=r.player.finishTime;assert.equal(r.phase,'complete');assert.equal(R.step(r,1000),false);assert.deepEqual(json(r),before);assert.equal(r.player.finishTime,finish);assert.equal(r.events.filter(e=>e.type==='complete').length,1);
 });
+
+test('Light racers pull away together and automatically accelerate to 100 miles per hour',()=>{
+    const r=R.createRace({driveMode:'light'});
+    R.step(r,R.START_COUNTDOWN-.1);
+    assert.equal(r.player.distance,0);
+    assert.equal(r.rival.distance,0);
+    R.step(r,.3);
+    assert.ok(r.player.distance>0);
+    assert.equal(r.player.distance,r.rival.distance);
+    const speed=r.player.velocity;
+    R.step(r,1);
+    assert.ok(Math.abs(r.player.velocity-speed-250)<1e-6);
+    assert.equal(r.player.velocity,r.rival.velocity);
+    R.step(r,5);
+    assert.equal(r.player.velocity,R.CRUISE_SPEED);
+    assert.equal(r.rival.velocity,R.CRUISE_SPEED);
+});
+
+test('Light permits manual speed up to 150 and respects the tunnel through rear clearance',()=>{
+    const r=R.createRace({driveMode:'light'}),v=r.player;
+    R.step(r,R.START_COUNTDOWN+5);
+    assert.equal(R.adjustSpeed(r,1),true);
+    R.step(r,1.05);
+    assert.equal(v.velocity,1250);
+    R.step(r,1.1,true);
+    assert.equal(v.velocity,1500);
+    for(const job of v.serviceStates)job.completed=true;
+    const tunnel=R.getTravelSections(r).find(s=>s.type==='tunnel');
+    v.distance=tunnel.start-1;
+    R.step(r,2.5,true);
+    assert.equal(v.velocity,750);
+    assert.equal(R.adjustSpeed(r,1),false);
+    const status=v.terrainStates.find(s=>s.id===tunnel.id);
+    for(let i=0;v.distance<=tunnel.end&&i<2400;i++)R.step(r,.025,true);
+    assert.ok(v.distance>tunnel.end);
+    assert.equal(status.completed,false);
+    assert.equal(v.velocity,750);
+    assert.equal(R.adjustSpeed(r,1),false);
+    for(let i=0;!status.completed&&i<300;i++)R.step(r,.025);
+    assert.equal(status.completed,true);
+    R.step(r,1.1);
+    assert.equal(v.velocity,R.CRUISE_SPEED);
+});
+
+test('Light waits for each passenger job and leaves both loading and final unloading on its own',()=>{
+    const r=R.createRace({driveMode:'light',deliveryTheme:'passengers'}),v=r.player;
+    R.step(r,R.START_COUNTDOWN+30);
+    assert.equal(v.service.type,'passenger-load');
+    const station=v.distance;
+    R.step(r,10,true);
+    assert.equal(v.distance,station);
+    assert.equal(v.service.unitsDone,0);
+    for(let i=0;i<3;i++){
+        assert.equal(R.serviceAction(r,'passenger-'+i),true);
+        R.step(r,1.1);
+    }
+    R.step(r,1);
+    assert.ok(v.distance>station);
+    const unload=completePassengers(r,'passenger-unload');
+    R.step(r,1);
+    assert.equal(v.carried.passengers,0);
+    assert.ok(v.distance>unload.at);
+    assert.ok(v.targetVelocity>0&&v.targetVelocity<=R.CRUISE_SPEED);
+});

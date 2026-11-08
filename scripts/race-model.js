@@ -247,11 +247,11 @@
             services:Object.freeze(services.map(s=>Object.freeze({id:s.id,actionDelays:Object.freeze(Array.from({length:10},()=>
                 pace+(s.type==='wash'?RIVAL_PARAMETERS.washExtra:0)+(random()*2-1)*RIVAL_PARAMETERS.actionJitter))})))});
     }
-    function createRace({courseId='country',playerId='thomas',opponentId='percy',seed=1,deliveryTheme=(seed&1?'cargo':'passengers')}={}){
+    function createRace({courseId='country',playerId='thomas',opponentId='percy',seed=1,deliveryTheme=(seed&1?'cargo':'passengers'),driveMode='full'}={}){
         if(!COURSES[courseId]||!character(playerId)||!character(opponentId)||!['passengers','cargo'].includes(deliveryTheme))throw new RangeError('Unknown race course, opponent or delivery theme');
         if(playerId===opponentId)throw new RangeError('Players must be different characters');
         const random=seeded(seed),services=makeServices(deliveryTheme,courseId,random),sections=COURSES[courseId].sections;
-        return {courseId,playerId,opponentId,seed:seed>>>0,deliveryTheme,phase:'countdown',countdown:START_COUNTDOWN,elapsed:0,
+        return {courseId,playerId,opponentId,seed:seed>>>0,deliveryTheme,driveMode:driveMode==='light'?'light':'full',phase:'countdown',countdown:START_COUNTDOWN,elapsed:0,
             player:{...vehicle(services,sections),speedPercent:0},rival:vehicle(services,sections),services,winner:null,rewarded:false,
             profile:makeProfile(services,random),events:[{type:'narration',key:'race.ready'}],_fixedRemainder:0};
     }
@@ -362,19 +362,20 @@
         if(next)limit=Math.min(limit,Math.sqrt(2*BRAKING*Math.max(0,next.at-v.distance)));
         return limit;
     }
-    function nextSpeedPercent(v){
-        const grade=Math.floor((v.speedPercent+EPS)/SPEED_STEP_PERCENT)+1;
-        return Math.min(MAX_SPEED_PERCENT,grade*SPEED_STEP_PERCENT);
+    function playerSpeedPercent(race){
+        const automatic=race.driveMode==='light'?CRUISE_SPEED/SPEED_UNIT:0;
+        return Math.max(race.player.speedPercent,automatic);
     }
     function nextAllowedSpeedPercent(race,v){
-        const next=nextSpeedPercent(v),limit=routeSpeedLimit(race,v)/SPEED_UNIT;
-        const terrain=activeTerrain(race,v);
+        const current=playerSpeedPercent(race),limit=routeSpeedLimit(race,v)/SPEED_UNIT;
+        const grade=Math.floor((current+EPS)/SPEED_STEP_PERCENT)+1;
+        const next=Math.min(MAX_SPEED_PERCENT,grade*SPEED_STEP_PERCENT),terrain=activeTerrain(race,v);
         if(terrain&&terrain.type!=='level-crossing')return Math.min(next,limit);
-        return next<=limit+EPS?next:v.speedPercent;
+        return next<=limit+EPS?next:current;
     }
     function canSpeedUp(race){
         const v=race.player;
-        return race.phase==='racing'&&!v.service&&v.entryBrakeTarget==null&&nextAllowedSpeedPercent(race,v)>v.speedPercent+EPS;
+        return race.phase==='racing'&&!v.service&&v.entryBrakeTarget==null&&nextAllowedSpeedPercent(race,v)>playerSpeedPercent(race)+EPS;
     }
     function adjustSpeed(race,direction){
         if(direction!==1||!canSpeedUp(race))return false;
@@ -387,8 +388,9 @@
         if(finishedBefore&&v.distance>=c.length+2500){v.velocity=v.targetVelocity=0;return;}
         if(v.service){v.velocity=v.targetVelocity=0;updateService(race,v,dt);return;}
         const before=v.distance,beforeVelocity=v.velocity;
-        const requested=v===race.rival?TOP_SPEED:Math.min(TOP_SPEED,
-            Math.max(v.speedPercent*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
+        const rivalSpeed=race.driveMode==='light'?CRUISE_SPEED:TOP_SPEED;
+        const requested=v===race.rival?rivalSpeed:Math.min(TOP_SPEED,
+            Math.max(playerSpeedPercent(race)*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
         let target=Math.min(requested,routeSpeedLimit(race,v),v.entryBrakeTarget??Infinity);
         const m=motion(v,target,dt);
         v.distance+=m.travelled;
@@ -403,7 +405,7 @@
             v.velocity=braking.velocity;
             v.distance=entry.start+braking.travelled;
         }else v.velocity=m.velocity;
-        // Braking lowers the player's speed setting. Only Up can raise it again.
+        // Braking lowers the manual setting. Light can recover to automatic speed.
         if(v===race.player&&(accelerating||target<requested||entry))v.speedPercent=target/SPEED_UNIT;
         v.targetVelocity=target;
         if(v.entryBrakeTarget!=null&&v.velocity<=v.entryBrakeTarget+EPS)v.entryBrakeTarget=null;
@@ -436,7 +438,32 @@
         v._travelledWorld+=Math.max(0,v.distance-before)*WORLD_SCALE;v.wheelTurns=v._travelledWorld/(Math.PI*2*WHEEL_RADIUS);
         if(v===race.player&&v.finishTime!==null)v.velocity=v.targetVelocity=0;
     }
-    function tick(race,dt,accelerating){if(race.phase==='countdown'){const old=race.countdown;race.countdown=Math.max(0,old-dt);if(old>START_COUNTDOWN/2+EPS&&race.countdown<=START_COUNTDOWN/2+EPS)race.events.push({type:'narration',key:'race.steady'});if(race.countdown<=EPS){race.countdown=0;race.phase='racing';race.events.push({type:'narration',key:'race.go'},{type:'delivery-goal',key:`race.${getCharacter(race).vehicleType==='air'?'flight.':''}delivery.${race.deliveryTheme}`});}return;}if(race.phase!=='racing')return;updateRivalIntentions(race);move(race,race.player,dt,accelerating);if(race.elapsed>=race.profile.startDelay)move(race,race.rival,dt);race.elapsed+=dt;if(race.player.finishTime!==null){const other=race.rival.finishTime;race.winner=other===null||race.player.finishTime<other-.05?'player':Math.abs(race.player.finishTime-other)<=.05?'tie':'rival';race.finishMotion={rivalVelocity:race.rival.velocity,rivalTarget:race.rival.targetVelocity};race.phase='complete';for(const v of[race.player,race.rival]){v.velocity=v.targetVelocity=0;}race.events.push({type:'complete',key:`race.complete.${race.winner==='player'?'win':race.winner==='tie'?'tie':'lose'}`});}}
+    function tick(race,dt,accelerating){
+        if(race.phase==='countdown'){
+            const old=race.countdown;
+            race.countdown=Math.max(0,old-dt);
+            if(old>START_COUNTDOWN/2+EPS&&race.countdown<=START_COUNTDOWN/2+EPS)race.events.push({type:'narration',key:'race.steady'});
+            if(race.countdown<=EPS){
+                race.countdown=0;race.phase='racing';
+                race.events.push({type:'narration',key:'race.go'},{type:'delivery-goal',key:`race.${getCharacter(race).vehicleType==='air'?'flight.':''}delivery.${race.deliveryTheme}`});
+            }
+            return;
+        }
+        if(race.phase!=='racing')return;
+        updateRivalIntentions(race);
+        const canDepart=race.elapsed>=race.profile.startDelay;
+        if(canDepart||race.driveMode!=='light')move(race,race.player,dt,accelerating);
+        if(canDepart)move(race,race.rival,dt);
+        race.elapsed+=dt;
+        if(race.player.finishTime!==null){
+            const other=race.rival.finishTime;
+            race.winner=other===null||race.player.finishTime<other-.05?'player':Math.abs(race.player.finishTime-other)<=.05?'tie':'rival';
+            race.finishMotion={rivalVelocity:race.rival.velocity,rivalTarget:race.rival.targetVelocity};
+            race.phase='complete';
+            for(const v of[race.player,race.rival])v.velocity=v.targetVelocity=0;
+            race.events.push({type:'complete',key:`race.complete.${race.winner==='player'?'win':race.winner==='tie'?'tie':'lose'}`});
+        }
+    }
     function step(race,dt,accelerating=false){if(!Number.isFinite(dt)||dt<=0||race.phase==='complete')return false;race._fixedRemainder+=dt;const ticks=Math.floor((race._fixedRemainder+EPS)/STEP);race._fixedRemainder-=ticks*STEP;if(race._fixedRemainder<0&&race._fixedRemainder>-EPS)race._fixedRemainder=0;for(let i=0;i<ticks&&race.phase!=='complete';i++)tick(race,STEP,accelerating);return true;}
     // Presentation owns its copy and clock. It may finish the rival's remaining
     // jobs, but never writes to the completed race or its persisted rewards.

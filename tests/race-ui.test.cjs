@@ -358,3 +358,24 @@ test('one continuous Up hold reaches full speed',()=>{
  ui.frames(9,60);
  assert.equal(ui.state().race.player.velocity,1500);
 });
+
+test('the cab lever selects Light from the keyboard, saves the mode, and repeats it on Rematch',()=>{
+ const ui=setup(JSON.stringify({version:1,stars:2,stickers:[]}));
+ assert.equal(node(ui,'driveModeFull').getAttribute('aria-pressed'),'true');
+ ui.key('ArrowLeft');ui.key('ArrowLeft');ui.key('Enter');
+ assert.equal(ui.document.activeElement,node(ui,'driveModeLight'));
+ assert.equal(node(ui,'driveModeLight').getAttribute('aria-pressed'),'true');
+ assert.equal(node(ui,'driveModeControl').getAttribute('data-selected'),'light');
+ const restored=setup(ui.storage.getItem(KEY));
+ assert.equal(node(restored,'driveModeLight').getAttribute('aria-pressed'),'true');
+ restored.click('#driveModeFull');
+ assert.equal(node(restored,'driveModeFull').getAttribute('aria-pressed'),'true');
+ restored.click('#driveModeLight');
+ start(restored);go(restored);restored.frames(4.5,45);
+ assert.equal(restored.state().race.driveMode,'light');
+ assert.equal(restored.state().race.player.velocity,1000);
+ assert.match(node(restored,'statusText').textContent,/^Use Up to speed up\./);
+ complete(restored);
+ restored.click('#skipCelebration');restored.click('#rewardReplay');
+ assert.equal(restored.state().race.driveMode,'light');
+});

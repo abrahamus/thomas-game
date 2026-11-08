@@ -19,7 +19,7 @@ test('one Race picture starts a random rival and retired choices cannot be used'
 test('music, mute, and whistle remain independent and music preference survives a new race',()=>{
  const ui=setup();
  assert.equal(ui.document.getElementById('optionsToggle'),null);
- assert.deepEqual(Array.from(ui.evaluate('menuButtons().map(button=>button.id)')),['playerPickerButton','opponentPickerButton','startRaceButton']);
+ assert.deepEqual(Array.from(ui.evaluate('menuButtons().map(button=>button.id)')),['playerPickerButton','opponentPickerButton','driveModeLight','driveModeFull','startRaceButton']);
  ui.evaluate("dispatchAction('music')");assert.equal(ui.state().musicEnabled,false);
  ui.evaluate("dispatchAction('repeat')");assert.ok(ui.spoken.length>0);
  ui.evaluate("dispatchAction('mute');dispatchAction('music')");assert.equal(ui.state().isMuted,true);assert.equal(ui.state().musicEnabled,true);

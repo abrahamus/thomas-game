@@ -281,7 +281,13 @@ function render() {
     show('raceStartOverlay',!playing && !ui.albumOpen);show('raceUnavailable',!playing && ui.raceUnavailable);
     show('pauseOverlay',playing && state.paused && !ui.albumOpen);show('rewardOverlay',results && !state.paused && !ui.albumOpen);show('albumOverlay',ui.albumOpen);
     show('raceCanvas',playing);
-    if(!playing){renderCharacterChoices();show('raceMatchup',false);show('raceStartLights',false);show('action-race-help',false);$('action-whistle').classList.remove('hint');}
+    if(!playing){
+        renderCharacterChoices();
+        $('driveModeControl').setAttribute('data-selected',state.driveMode);
+        $('driveModeLight').setAttribute('aria-pressed',state.driveMode==='light');
+        $('driveModeFull').setAttribute('aria-pressed',state.driveMode==='full');
+        show('raceMatchup',false);show('raceStartLights',false);show('action-race-help',false);$('action-whistle').classList.remove('hint');
+    }
     $('playWorld').classList.add('is-race');$('footerDashboard').classList.add('is-race');
     if(playing && !ensureRaceView())return;
     if(!playing && ui.raceView){ui.raceView.dispose();ui.raceView=null;}
@@ -291,7 +297,8 @@ function render() {
     show('footerDashboard',playing&&!results);show('action-whistle',playing&&!results);
     show('action-accelerate',playing&&!completed);
     document.querySelector('[data-action="pause"]').hidden=!playing;
-    $('statusText').textContent=playing?'Use Up to start and speed up. Help at each stop.':'';
+    const drivingPrompt=state.race?.driveMode==='light'?'Use Up to speed up.':'Use Up to start and speed up.';
+    $('statusText').textContent=playing?drivingPrompt+' Help at each stop.':'';
     if(playing){
         const character=ThomasRaceCore.getCharacter(state.race),signal=character.power==='rotor'?'radio':character.power==='diesel'?'horn':'whistle';
         $('pausePortrait').setAttribute('href',`#${character.portrait}`);$('pauseTitle').textContent=`${character.name} is having a rest`;
@@ -372,7 +379,9 @@ function dispatchAction(action,payload) {
     if(action==='whistle'||signalsAnimals||requestsClearance){playPeepPeepWhistle();ui.whistle=.8;}
     else if(['race-help','race-clean-spot'].includes(action))playPopSound(700);
     render();
-    if(menuButtons().length){focusMenuDefault();if(action==='home'||action==='next-race')announce('race.menu',{force:true});}
+    if(action==='select-drive-mode'){
+        selectMenu(menuButtons().findIndex(button=>button.dataset.action===action&&button.dataset.value===payload),true,false);
+    }else if(menuButtons().length){focusMenuDefault();if(action==='home'||action==='next-race')announce('race.menu',{force:true});}
     else if(['resume','start-race','rematch','race-help','race-clean-spot'].includes(action))focusStage();
     return true;
 }

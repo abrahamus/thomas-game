@@ -637,6 +637,17 @@ body{height:100dvh;overflow:hidden}
 .racer-choice.is-selected,.racer-choice:focus-visible{outline:3px solid #e16b28;outline-offset:2px}
 .racer-unavailable{position:absolute;left:107px;bottom:8px;font-size:11px;line-height:1.1;color:#663644}.racer-unavailable:empty{display:none}
 .picker-footer{flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fffaf0;padding:4px}
+.cab-mode{position:relative;align-self:center;width:min(100%,316px);aspect-ratio:316/86;flex:none;isolation:isolate}
+.cab-mechanism{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 3px 0 #52331426)}
+.cab-position{position:absolute;inset:0 50% 0 0;display:flex;align-items:center;justify-content:flex-start;border:0;background:transparent;padding:0 0 4px 8.3%;border-radius:22px;color:#342719;font-size:16px;font-weight:900}
+.cab-position[data-value="full"]{inset:0 0 0 50%;justify-content:flex-end;padding:0 8.3% 4px 0}
+.cab-position span{min-width:65px;padding:5px 8px;border:1px solid #775221;border-radius:6px;background:linear-gradient(#f0d18b,#bd8c42);box-shadow:inset 0 1px #ffedb6,0 2px #0f416c;text-align:center}
+.cab-position[aria-pressed="true"] span{background:linear-gradient(#fff4b6,#f1c358);box-shadow:inset 0 1px #fffbdf,0 2px #0f416c,0 0 0 1px #f7d472}
+.cab-position:hover span{filter:brightness(1.08)}
+.cab-handle{transform-origin:158px 65px;transform:rotate(-47deg);transition:transform 220ms cubic-bezier(.2,.8,.3,1.18)}
+.cab-mode[data-selected="full"] .cab-handle{transform:rotate(47deg)}
+@media(prefers-reduced-motion:reduce){.cab-handle{transition:none}}
+@media(max-height:380px) and (orientation:landscape){.cab-mode{width:min(100%,262px)}.cab-position{font-size:14px}.cab-position span{min-width:55px;padding:4px 6px}}
 #startRaceButton{min-height:56px;width:min(100%,300px);font-size:24px;border-radius:18px}
 #raceMatchup{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:#fffaf0ee;border-radius:18px;pointer-events:none;color:#194e76;max-width:95%;z-index:2}
 #raceMatchup svg{width:50px;height:50px}#raceMatchup span{font-weight:800}
@@ -1433,6 +1444,48 @@ body{height:100dvh;overflow:hidden}
  <span class="picker-selected-label"><strong id="opponentChoiceName">Random</strong><small>Change</small></span><span class="picker-arrow" aria-hidden="true">▾</span></button>
  <div id="opponentPickerMenu" class="racer-dropdown" hidden><div id="opponentChoices" class="racer-grid" role="group" aria-label="Computer character choices" aria-describedby="opponentScrollHint"></div><p id="opponentScrollHint" class="picker-scroll-hint">Scroll for more friends ↕</p></div>
  </section></div>
+ <div id="driveModeControl" class="cab-mode" data-selected="full" role="group" aria-label="Driving mode">
+    <svg class="cab-mechanism" viewBox="0 0 316 86" aria-hidden="true">
+      <defs>
+        <linearGradient id="cab-edge" x2="0" y2="1">
+          <stop stop-color="#fff1a8"/><stop offset=".36" stop-color="#d9a852"/><stop offset=".68" stop-color="#987135"/><stop offset="1" stop-color="#edc668"/>
+        </linearGradient>
+        <linearGradient id="cab-enamel" x2="0" y2="1">
+          <stop stop-color="#2879b9"/><stop offset="1" stop-color="#114d82"/>
+        </linearGradient>
+        <linearGradient id="cab-shaft" x2="1" y2="0">
+          <stop stop-color="#795323"/><stop offset=".43" stop-color="#fff3b7"/><stop offset=".67" stop-color="#e0ac4d"/><stop offset="1" stop-color="#a26e2c"/>
+        </linearGradient>
+        <radialGradient id="cab-grip" cx=".37" cy=".28" r=".77">
+          <stop stop-color="#ff9b87"/><stop offset=".46" stop-color="#ed4b40"/><stop offset="1" stop-color="#9e252a"/>
+        </radialGradient>
+        <g id="cab-screw">
+          <circle r="5" fill="#5c401d" opacity=".48" cy="1"/>
+          <circle r="4.3" fill="url(#cab-edge)" stroke="#644a24" stroke-width=".8"/>
+          <path d="M-2 2 2-2" stroke="#66491f" stroke-width="1.2" stroke-linecap="round"/>
+        </g>
+      </defs>
+      <rect x="2" y="4" width="312" height="79" rx="23" fill="#47321c"/>
+      <rect x="2" y="1" width="312" height="79" rx="23" fill="url(#cab-edge)" stroke="#755124" stroke-width="1.5"/>
+      <rect x="7" y="6" width="302" height="69" rx="18" fill="url(#cab-enamel)" stroke="#173d63" stroke-width="2"/>
+      <rect x="10" y="9" width="296" height="63" rx="15" fill="none" stroke="#89c7ef" stroke-opacity=".47"/>
+      <use href="#cab-screw" x="18" y="40"/><use href="#cab-screw" x="298" y="40"/>
+      <path d="M125 42 A45 45 0 0 1 191 42" fill="none" stroke="#b88a40" stroke-width="13" stroke-linecap="round"/>
+      <path d="M125 41 A45 45 0 0 1 191 41" fill="none" stroke="#f5cc75" stroke-width="10" stroke-linecap="round"/>
+      <path d="M125 41 A45 45 0 0 1 191 41" fill="none" stroke="#203344" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="158" cy="68" r="9" fill="#142e47" opacity=".8"/>
+      <circle cx="158" cy="65" r="9" fill="url(#cab-edge)" stroke="#65461f" stroke-width="1.2"/>
+      <g class="cab-handle">
+        <path d="M158 65V19" stroke="#593a1b" stroke-width="11" stroke-linecap="round"/>
+        <path d="M158 64V20" stroke="url(#cab-shaft)" stroke-width="8" stroke-linecap="round"/>
+        <rect x="149" y="11" width="18" height="21" rx="7.5" fill="url(#cab-grip)" stroke="#7d2527" stroke-width="1.5"/>
+        <path d="M153 17Q154 14 158 14" stroke="#ffd0b8" stroke-opacity=".8" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      </g>
+      <circle cx="158" cy="65" r="3.1" fill="#ffe5a3" stroke="#8a612a" stroke-width="1"/>
+    </svg>
+    <button class="cab-position" type="button" id="driveModeLight" data-action="select-drive-mode" data-value="light" aria-pressed="false"><span>Light</span></button>
+    <button class="cab-position" type="button" id="driveModeFull" data-action="select-drive-mode" data-value="full" aria-pressed="true"><span>Full</span></button>
+  </div>
  <div class="picker-footer"><button id="startRaceButton" class="action action-green" data-action="start-race" data-narration="race.menu" aria-label="Start a race" aria-keyshortcuts="Enter">▶ Race!</button></div>
  <div id="raceUnavailable" role="status" hidden>The race cannot start in this browser. Please try another browser with WebGL enabled.</div></div>
 </section>
@@ -1705,11 +1758,11 @@ body{height:100dvh;overflow:hidden}
             services:Object.freeze(services.map(s=>Object.freeze({id:s.id,actionDelays:Object.freeze(Array.from({length:10},()=>
                 pace+(s.type==='wash'?RIVAL_PARAMETERS.washExtra:0)+(random()*2-1)*RIVAL_PARAMETERS.actionJitter))})))});
     }
-    function createRace({courseId='country',playerId='thomas',opponentId='percy',seed=1,deliveryTheme=(seed&1?'cargo':'passengers')}={}){
+    function createRace({courseId='country',playerId='thomas',opponentId='percy',seed=1,deliveryTheme=(seed&1?'cargo':'passengers'),driveMode='full'}={}){
         if(!COURSES[courseId]||!character(playerId)||!character(opponentId)||!['passengers','cargo'].includes(deliveryTheme))throw new RangeError('Unknown race course, opponent or delivery theme');
         if(playerId===opponentId)throw new RangeError('Players must be different characters');
         const random=seeded(seed),services=makeServices(deliveryTheme,courseId,random),sections=COURSES[courseId].sections;
-        return {courseId,playerId,opponentId,seed:seed>>>0,deliveryTheme,phase:'countdown',countdown:START_COUNTDOWN,elapsed:0,
+        return {courseId,playerId,opponentId,seed:seed>>>0,deliveryTheme,driveMode:driveMode==='light'?'light':'full',phase:'countdown',countdown:START_COUNTDOWN,elapsed:0,
             player:{...vehicle(services,sections),speedPercent:0},rival:vehicle(services,sections),services,winner:null,rewarded:false,
             profile:makeProfile(services,random),events:[{type:'narration',key:'race.ready'}],_fixedRemainder:0};
     }
@@ -1820,19 +1873,20 @@ body{height:100dvh;overflow:hidden}
         if(next)limit=Math.min(limit,Math.sqrt(2*BRAKING*Math.max(0,next.at-v.distance)));
         return limit;
     }
-    function nextSpeedPercent(v){
-        const grade=Math.floor((v.speedPercent+EPS)/SPEED_STEP_PERCENT)+1;
-        return Math.min(MAX_SPEED_PERCENT,grade*SPEED_STEP_PERCENT);
+    function playerSpeedPercent(race){
+        const automatic=race.driveMode==='light'?CRUISE_SPEED/SPEED_UNIT:0;
+        return Math.max(race.player.speedPercent,automatic);
     }
     function nextAllowedSpeedPercent(race,v){
-        const next=nextSpeedPercent(v),limit=routeSpeedLimit(race,v)/SPEED_UNIT;
-        const terrain=activeTerrain(race,v);
+        const current=playerSpeedPercent(race),limit=routeSpeedLimit(race,v)/SPEED_UNIT;
+        const grade=Math.floor((current+EPS)/SPEED_STEP_PERCENT)+1;
+        const next=Math.min(MAX_SPEED_PERCENT,grade*SPEED_STEP_PERCENT),terrain=activeTerrain(race,v);
         if(terrain&&terrain.type!=='level-crossing')return Math.min(next,limit);
-        return next<=limit+EPS?next:v.speedPercent;
+        return next<=limit+EPS?next:current;
     }
     function canSpeedUp(race){
         const v=race.player;
-        return race.phase==='racing'&&!v.service&&v.entryBrakeTarget==null&&nextAllowedSpeedPercent(race,v)>v.speedPercent+EPS;
+        return race.phase==='racing'&&!v.service&&v.entryBrakeTarget==null&&nextAllowedSpeedPercent(race,v)>playerSpeedPercent(race)+EPS;
     }
     function adjustSpeed(race,direction){
         if(direction!==1||!canSpeedUp(race))return false;
@@ -1845,8 +1899,9 @@ body{height:100dvh;overflow:hidden}
         if(finishedBefore&&v.distance>=c.length+2500){v.velocity=v.targetVelocity=0;return;}
         if(v.service){v.velocity=v.targetVelocity=0;updateService(race,v,dt);return;}
         const before=v.distance,beforeVelocity=v.velocity;
-        const requested=v===race.rival?TOP_SPEED:Math.min(TOP_SPEED,
-            Math.max(v.speedPercent*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
+        const rivalSpeed=race.driveMode==='light'?CRUISE_SPEED:TOP_SPEED;
+        const requested=v===race.rival?rivalSpeed:Math.min(TOP_SPEED,
+            Math.max(playerSpeedPercent(race)*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
         let target=Math.min(requested,routeSpeedLimit(race,v),v.entryBrakeTarget??Infinity);
         const m=motion(v,target,dt);
         v.distance+=m.travelled;
@@ -1861,7 +1916,7 @@ body{height:100dvh;overflow:hidden}
             v.velocity=braking.velocity;
             v.distance=entry.start+braking.travelled;
         }else v.velocity=m.velocity;
-        // Braking lowers the player's speed setting. Only Up can raise it again.
+        // Braking lowers the manual setting. Light can recover to automatic speed.
         if(v===race.player&&(accelerating||target<requested||entry))v.speedPercent=target/SPEED_UNIT;
         v.targetVelocity=target;
         if(v.entryBrakeTarget!=null&&v.velocity<=v.entryBrakeTarget+EPS)v.entryBrakeTarget=null;
@@ -1894,7 +1949,32 @@ body{height:100dvh;overflow:hidden}
         v._travelledWorld+=Math.max(0,v.distance-before)*WORLD_SCALE;v.wheelTurns=v._travelledWorld/(Math.PI*2*WHEEL_RADIUS);
         if(v===race.player&&v.finishTime!==null)v.velocity=v.targetVelocity=0;
     }
-    function tick(race,dt,accelerating){if(race.phase==='countdown'){const old=race.countdown;race.countdown=Math.max(0,old-dt);if(old>START_COUNTDOWN/2+EPS&&race.countdown<=START_COUNTDOWN/2+EPS)race.events.push({type:'narration',key:'race.steady'});if(race.countdown<=EPS){race.countdown=0;race.phase='racing';race.events.push({type:'narration',key:'race.go'},{type:'delivery-goal',key:`race.${getCharacter(race).vehicleType==='air'?'flight.':''}delivery.${race.deliveryTheme}`});}return;}if(race.phase!=='racing')return;updateRivalIntentions(race);move(race,race.player,dt,accelerating);if(race.elapsed>=race.profile.startDelay)move(race,race.rival,dt);race.elapsed+=dt;if(race.player.finishTime!==null){const other=race.rival.finishTime;race.winner=other===null||race.player.finishTime<other-.05?'player':Math.abs(race.player.finishTime-other)<=.05?'tie':'rival';race.finishMotion={rivalVelocity:race.rival.velocity,rivalTarget:race.rival.targetVelocity};race.phase='complete';for(const v of[race.player,race.rival]){v.velocity=v.targetVelocity=0;}race.events.push({type:'complete',key:`race.complete.${race.winner==='player'?'win':race.winner==='tie'?'tie':'lose'}`});}}
+    function tick(race,dt,accelerating){
+        if(race.phase==='countdown'){
+            const old=race.countdown;
+            race.countdown=Math.max(0,old-dt);
+            if(old>START_COUNTDOWN/2+EPS&&race.countdown<=START_COUNTDOWN/2+EPS)race.events.push({type:'narration',key:'race.steady'});
+            if(race.countdown<=EPS){
+                race.countdown=0;race.phase='racing';
+                race.events.push({type:'narration',key:'race.go'},{type:'delivery-goal',key:`race.${getCharacter(race).vehicleType==='air'?'flight.':''}delivery.${race.deliveryTheme}`});
+            }
+            return;
+        }
+        if(race.phase!=='racing')return;
+        updateRivalIntentions(race);
+        const canDepart=race.elapsed>=race.profile.startDelay;
+        if(canDepart||race.driveMode!=='light')move(race,race.player,dt,accelerating);
+        if(canDepart)move(race,race.rival,dt);
+        race.elapsed+=dt;
+        if(race.player.finishTime!==null){
+            const other=race.rival.finishTime;
+            race.winner=other===null||race.player.finishTime<other-.05?'player':Math.abs(race.player.finishTime-other)<=.05?'tie':'rival';
+            race.finishMotion={rivalVelocity:race.rival.velocity,rivalTarget:race.rival.targetVelocity};
+            race.phase='complete';
+            for(const v of[race.player,race.rival])v.velocity=v.targetVelocity=0;
+            race.events.push({type:'complete',key:`race.complete.${race.winner==='player'?'win':race.winner==='tie'?'tie':'lose'}`});
+        }
+    }
     function step(race,dt,accelerating=false){if(!Number.isFinite(dt)||dt<=0||race.phase==='complete')return false;race._fixedRemainder+=dt;const ticks=Math.floor((race._fixedRemainder+EPS)/STEP);race._fixedRemainder-=ticks*STEP;if(race._fixedRemainder<0&&race._fixedRemainder>-EPS)race._fixedRemainder=0;for(let i=0;i<ticks&&race.phase!=='complete';i++)tick(race,STEP,accelerating);return true;}
     // Presentation owns its copy and clock. It may finish the rival's remaining
     // jobs, but never writes to the completed race or its persisted rewards.
@@ -1997,11 +2077,11 @@ body{height:100dvh;overflow:hidden}
     function createGame(storage,random=Math.random){
         if(storage===undefined){try{storage=globalThis.localStorage;}catch(_){storage=null;}}
         const validId=id=>!!ThomasRaceCore.character(id),validChoice=id=>id==='random'||validId(id);
-        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,selections:{playerId:'thomas',opponentId:'random'}};
+        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,driveMode:'full',selections:{playerId:'thomas',opponentId:'random'}};
         try{
             const saved=JSON.parse(storage?.getItem(STORAGE_KEY)||'null');
             if(saved?.version===1&&Number.isSafeInteger(saved.stars)&&saved.stars>=0&&Array.isArray(saved.stickers)&&saved.stickers.every(id=>STICKER_IDS.includes(id))){
-                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],
+                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],driveMode:saved.driveMode==='light'?'light':'full',
                     completedMissions:Array.isArray(saved.completedMissions)?[...new Set(saved.completedMissions.filter(id=>LEGACY_STICKERS.some(s=>s.id===id)))]:[],
                     lastRace:saved.lastRace&&['country','harbour','mountain'].includes(saved.lastRace.courseId)&&validId(saved.lastRace.opponentId)?
                         {courseId:saved.lastRace.courseId,playerId:validId(saved.lastRace.playerId)?saved.lastRace.playerId:'thomas',opponentId:saved.lastRace.opponentId,...(['passengers','cargo'].includes(saved.lastRace.deliveryTheme)?{deliveryTheme:saved.lastRace.deliveryTheme}:{})}:null};
@@ -2012,7 +2092,7 @@ body{height:100dvh;overflow:hidden}
         const state={screen:'race-start',mode:'race',activity:'drive',phase:'ready',paused:false,
             gear:0,speed:0,throttle:0,velocity:0,targetVelocity:0,distance:0,race:null,generation:0,...progress};
         function save(){
-            try{if(!storage?.setItem)return false;storage.setItem(STORAGE_KEY,JSON.stringify({version:1,stars:state.stars,stickers:state.stickers,selections:state.selections,
+            try{if(!storage?.setItem)return false;storage.setItem(STORAGE_KEY,JSON.stringify({version:1,stars:state.stars,stickers:state.stickers,selections:state.selections,driveMode:state.driveMode,
                 ...(state.completedMissions.length?{completedMissions:state.completedMissions}:{}),...(state.lastRace?{lastRace:state.lastRace}:{})}));return true;}catch(_){return false;}
         }
         function reset(){Object.assign(state,{paused:false,gear:0,speed:0,throttle:0,velocity:0,targetVelocity:0,distance:0,phase:'ready',race:null,generation:state.generation+1});}
@@ -2039,15 +2119,19 @@ body{height:100dvh;overflow:hidden}
                 if(payload!=='random'&&payload===state.selections[other])return false;
                 state.selections={...state.selections,[key]:payload};save();return true;
             }
+            if(action==='select-drive-mode'){
+                if(state.screen!=='race-start'||(payload!=='light'&&payload!=='full'))return false;
+                state.driveMode=payload;save();return true;
+            }
             if(action==='start-race'){
                 if(payload!==undefined || state.screen!=='race-start')return false;
-                return start(ThomasRaceCore.chooseRace({...state.selections,lastRace:state.lastRace,random:randomValue}));
+                return start({...ThomasRaceCore.chooseRace({...state.selections,lastRace:state.lastRace,random:randomValue}),driveMode:state.driveMode});
             }
             if(state.screen!=='play'||!state.race)return false;
             if(action==='pause'){state.paused=true;return true;}
             if(action==='rematch'&&state.phase==='complete'){
-                const {playerId,opponentId,courseId,deliveryTheme,seed}=state.race;
-                return start({playerId,opponentId,courseId,deliveryTheme,seed});
+                const {playerId,opponentId,courseId,deliveryTheme,seed,driveMode}=state.race;
+                return start({playerId,opponentId,courseId,deliveryTheme,seed,driveMode});
             }
             if(state.phase==='complete')return false;
             if(action==='accelerate')return ThomasRaceCore.adjustSpeed(state.race,1);
@@ -59601,7 +59685,13 @@ function render() {
     show('raceStartOverlay',!playing && !ui.albumOpen);show('raceUnavailable',!playing && ui.raceUnavailable);
     show('pauseOverlay',playing && state.paused && !ui.albumOpen);show('rewardOverlay',results && !state.paused && !ui.albumOpen);show('albumOverlay',ui.albumOpen);
     show('raceCanvas',playing);
-    if(!playing){renderCharacterChoices();show('raceMatchup',false);show('raceStartLights',false);show('action-race-help',false);$('action-whistle').classList.remove('hint');}
+    if(!playing){
+        renderCharacterChoices();
+        $('driveModeControl').setAttribute('data-selected',state.driveMode);
+        $('driveModeLight').setAttribute('aria-pressed',state.driveMode==='light');
+        $('driveModeFull').setAttribute('aria-pressed',state.driveMode==='full');
+        show('raceMatchup',false);show('raceStartLights',false);show('action-race-help',false);$('action-whistle').classList.remove('hint');
+    }
     $('playWorld').classList.add('is-race');$('footerDashboard').classList.add('is-race');
     if(playing && !ensureRaceView())return;
     if(!playing && ui.raceView){ui.raceView.dispose();ui.raceView=null;}
@@ -59611,7 +59701,8 @@ function render() {
     show('footerDashboard',playing&&!results);show('action-whistle',playing&&!results);
     show('action-accelerate',playing&&!completed);
     document.querySelector('[data-action="pause"]').hidden=!playing;
-    $('statusText').textContent=playing?'Use Up to start and speed up. Help at each stop.':'';
+    const drivingPrompt=state.race?.driveMode==='light'?'Use Up to speed up.':'Use Up to start and speed up.';
+    $('statusText').textContent=playing?drivingPrompt+' Help at each stop.':'';
     if(playing){
         const character=ThomasRaceCore.getCharacter(state.race),signal=character.power==='rotor'?'radio':character.power==='diesel'?'horn':'whistle';
         $('pausePortrait').setAttribute('href',`#${character.portrait}`);$('pauseTitle').textContent=`${character.name} is having a rest`;
@@ -59692,7 +59783,9 @@ function dispatchAction(action,payload) {
     if(action==='whistle'||signalsAnimals||requestsClearance){playPeepPeepWhistle();ui.whistle=.8;}
     else if(['race-help','race-clean-spot'].includes(action))playPopSound(700);
     render();
-    if(menuButtons().length){focusMenuDefault();if(action==='home'||action==='next-race')announce('race.menu',{force:true});}
+    if(action==='select-drive-mode'){
+        selectMenu(menuButtons().findIndex(button=>button.dataset.action===action&&button.dataset.value===payload),true,false);
+    }else if(menuButtons().length){focusMenuDefault();if(action==='home'||action==='next-race')announce('race.menu',{force:true});}
     else if(['resume','start-race','rematch','race-help','race-clean-spot'].includes(action))focusStage();
     return true;
 }

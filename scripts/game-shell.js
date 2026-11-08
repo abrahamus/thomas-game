@@ -22,11 +22,11 @@
     function createGame(storage,random=Math.random){
         if(storage===undefined){try{storage=globalThis.localStorage;}catch(_){storage=null;}}
         const validId=id=>!!ThomasRaceCore.character(id),validChoice=id=>id==='random'||validId(id);
-        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,selections:{playerId:'thomas',opponentId:'random'}};
+        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,driveMode:'full',selections:{playerId:'thomas',opponentId:'random'}};
         try{
             const saved=JSON.parse(storage?.getItem(STORAGE_KEY)||'null');
             if(saved?.version===1&&Number.isSafeInteger(saved.stars)&&saved.stars>=0&&Array.isArray(saved.stickers)&&saved.stickers.every(id=>STICKER_IDS.includes(id))){
-                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],
+                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],driveMode:saved.driveMode==='light'?'light':'full',
                     completedMissions:Array.isArray(saved.completedMissions)?[...new Set(saved.completedMissions.filter(id=>LEGACY_STICKERS.some(s=>s.id===id)))]:[],
                     lastRace:saved.lastRace&&['country','harbour','mountain'].includes(saved.lastRace.courseId)&&validId(saved.lastRace.opponentId)?
                         {courseId:saved.lastRace.courseId,playerId:validId(saved.lastRace.playerId)?saved.lastRace.playerId:'thomas',opponentId:saved.lastRace.opponentId,...(['passengers','cargo'].includes(saved.lastRace.deliveryTheme)?{deliveryTheme:saved.lastRace.deliveryTheme}:{})}:null};
@@ -37,7 +37,7 @@
         const state={screen:'race-start',mode:'race',activity:'drive',phase:'ready',paused:false,
             gear:0,speed:0,throttle:0,velocity:0,targetVelocity:0,distance:0,race:null,generation:0,...progress};
         function save(){
-            try{if(!storage?.setItem)return false;storage.setItem(STORAGE_KEY,JSON.stringify({version:1,stars:state.stars,stickers:state.stickers,selections:state.selections,
+            try{if(!storage?.setItem)return false;storage.setItem(STORAGE_KEY,JSON.stringify({version:1,stars:state.stars,stickers:state.stickers,selections:state.selections,driveMode:state.driveMode,
                 ...(state.completedMissions.length?{completedMissions:state.completedMissions}:{}),...(state.lastRace?{lastRace:state.lastRace}:{})}));return true;}catch(_){return false;}
         }
         function reset(){Object.assign(state,{paused:false,gear:0,speed:0,throttle:0,velocity:0,targetVelocity:0,distance:0,phase:'ready',race:null,generation:state.generation+1});}
@@ -64,15 +64,19 @@
                 if(payload!=='random'&&payload===state.selections[other])return false;
                 state.selections={...state.selections,[key]:payload};save();return true;
             }
+            if(action==='select-drive-mode'){
+                if(state.screen!=='race-start'||(payload!=='light'&&payload!=='full'))return false;
+                state.driveMode=payload;save();return true;
+            }
             if(action==='start-race'){
                 if(payload!==undefined || state.screen!=='race-start')return false;
-                return start(ThomasRaceCore.chooseRace({...state.selections,lastRace:state.lastRace,random:randomValue}));
+                return start({...ThomasRaceCore.chooseRace({...state.selections,lastRace:state.lastRace,random:randomValue}),driveMode:state.driveMode});
             }
             if(state.screen!=='play'||!state.race)return false;
             if(action==='pause'){state.paused=true;return true;}
             if(action==='rematch'&&state.phase==='complete'){
-                const {playerId,opponentId,courseId,deliveryTheme,seed}=state.race;
-                return start({playerId,opponentId,courseId,deliveryTheme,seed});
+                const {playerId,opponentId,courseId,deliveryTheme,seed,driveMode}=state.race;
+                return start({playerId,opponentId,courseId,deliveryTheme,seed,driveMode});
             }
             if(state.phase==='complete')return false;
             if(action==='accelerate')return ThomasRaceCore.adjustSpeed(state.race,1);

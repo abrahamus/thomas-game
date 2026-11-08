@@ -6,7 +6,7 @@ const visibleChoices=ui=>ui.document.querySelectorAll('.racer-grid button').filt
 test('startup shows only the two selected portraits and opens one scrollable dropdown at a time',()=>{
  const ui=setup();assert.equal(visibleChoices(ui).length,0);assert.equal(node(ui,'playerChoiceName').textContent,'Thomas');assert.equal(node(ui,'opponentChoiceName').textContent,'Random');
  assert.equal(node(ui,'playerChoicePortrait').getAttribute('href'),'#portrait-thomas');assert.equal(node(ui,'opponentChoicePortrait').getAttribute('href'),'#portrait-random');
- assert.deepEqual(Array.from(ui.evaluate('menuButtons().map(b=>b.id)')),['playerPickerButton','opponentPickerButton','startRaceButton']);
+ assert.deepEqual(Array.from(ui.evaluate('menuButtons().map(b=>b.id)')),['playerPickerButton','opponentPickerButton','driveModeLight','driveModeFull','startRaceButton']);
  ui.click('#playerPickerButton');assert.equal(visibleChoices(ui).length,11);assert.equal(node(ui,'playerPickerButton').getAttribute('aria-expanded'),'true');
  ui.click('#opponentPickerButton');assert.equal(node(ui,'playerPickerMenu').hidden,true);assert.equal(visibleChoices(ui).length,11);assert.equal(node(ui,'choose-opponent-thomas').disabled,true);
  ui.click('#choose-opponent-harold');assert.equal(visibleChoices(ui).length,0);assert.equal(node(ui,'opponentChoicePortrait').getAttribute('href'),'#portrait-harold');assert.equal(ui.document.activeElement,node(ui,'opponentPickerButton'));
