@@ -530,8 +530,6 @@ body{height:100dvh;overflow:hidden}
 .race-start-lights .lit-amber{background:#ffd357;box-shadow:0 0 14px #fff0ac}
 .race-start-lights .lit-green{background:#70d77e;box-shadow:0 0 14px #c5ffd0}
 .race-result-picture{width:88px;height:88px;display:block}
-#raceUnavailable{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;font-size:32px}
-#raceUnavailable svg{width:70px;height:60px}
 @media(max-width:650px){
  #menuOverlay .menu-cards{gap:9px}
  #menuOverlay .menu-card{padding:12px 6px;min-height:170px}
@@ -621,22 +619,205 @@ body{height:100dvh;overflow:hidden}
  .is-race .actions .action-race-help{min-height:100px}
  .is-race .actions .action-race-help .control-picture{height:70px}
 }
-#raceStartOverlay{padding:12px}
-#raceStartOverlay .modal{width:min(820px,100%);display:flex;flex-direction:column;overflow:hidden;padding:18px;max-height:100%;gap:12px}
-#raceStartOverlay h2{font-size:28px}
-.racer-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;overflow:auto;min-height:0;padding:5px;scroll-padding:8px;align-items:start}
-.racer-panel{min-width:0;border:2px solid #bed7df;border-radius:18px;padding:12px;background:#eef8fc}
-.racer-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.racer-panel h3{margin:0;font-size:23px;color:#195488}.picker-current{font-size:14px;font-weight:800;color:#267841;background:#e6f8e7;border:1px solid #b7d8bd;border-radius:20px;padding:4px 10px}.picker-scroll-hint{margin:7px 0 0;font-size:13px;font-weight:700;color:#58748a}
-.racer-panel.computer{background:#f5effa;border-color:#d5c4e5}
-.racer-grid{display:flex;flex-direction:column;gap:10px;height:min(286px,38dvh);min-height:130px;overflow-y:scroll;overflow-x:hidden;padding:6px 10px 9px 6px;scroll-padding:8px;scrollbar-gutter:stable;scrollbar-color:#84aabe #e1ecf1;touch-action:pan-y;overscroll-behavior-y:contain}.racer-grid::-webkit-scrollbar{width:12px}.racer-grid::-webkit-scrollbar-track{background:#e1ecf1;border-radius:12px}.racer-grid::-webkit-scrollbar-thumb{background:#84aabe;border:2px solid #e1ecf1;border-radius:12px;min-height:40px}
-.racer-choice{position:relative;display:flex;flex:0 0 96px;flex-direction:row;align-items:center;justify-content:flex-start;gap:16px;min-width:0;min-height:96px;padding:8px 12px;border:3px solid #ccdbe1;border-radius:15px;background:#fff;color:#284b61;font-size:20px;font-weight:800;box-shadow:0 3px 0 #c0cfd5;scroll-margin:6px}.racer-choice>span:not(.racer-unavailable){text-align:left;padding-right:18px}
-.racer-choice svg{width:76px;max-width:none;height:72px;flex:0 0 76px}
-.racer-choice[aria-pressed="true"]{border-color:#2c8a4d;background:#e6f8e7;box-shadow:0 3px 0 #267841}
-.racer-choice[aria-pressed="true"]::after{content:'✓';position:absolute;top:6px;right:6px;background:#267841;color:white;border-radius:50%;width:23px;height:23px;line-height:23px}
-.racer-choice:disabled{opacity:.42;box-shadow:none;cursor:not-allowed}
-.racer-choice.is-selected,.racer-choice:focus-visible{outline:3px solid #e16b28;outline-offset:2px}
-.racer-unavailable{position:absolute;left:107px;bottom:8px;font-size:11px;line-height:1.1;color:#663644}.racer-unavailable:empty{display:none}
-.picker-footer{flex-shrink:0;display:flex;align-items:center;justify-content:center;background:#fffaf0;padding:4px}
+/* The start screen is the steam cab dashboard. Other dialogs keep their own theme. */
+#raceStartOverlay {
+ --cab-brass:linear-gradient(180deg,#fff0b0 0%,#e8ba65 28%,#a87b39 66%,#e8bd69 100%);
+ --cab-plate:linear-gradient(180deg,#fff1bb,#e9bb63);
+ --cab-cream:linear-gradient(#fff6d5,#f1d294);
+ --cab-ink:#332719;
+ padding:8px;
+}
+#raceStartOverlay .modal {
+ position:relative;
+ display:flex;
+ flex-direction:column;
+ gap:19px;
+ width:min(804px,100%);
+ max-height:100%;
+ padding:22px 25px 24px;
+ overflow:hidden;
+ border:5px solid transparent;
+ border-radius:29px;
+ background:linear-gradient(157deg,#3187c4 0%,#216da7 42%,#144c7b 100%) padding-box,var(--cab-brass) border-box;
+ box-shadow:inset 0 0 0 2px #103a61,inset 0 0 0 4px #80bde06b,0 3px 0 #775128,0 6px 0 #61462226;
+}
+#raceStartOverlay h2 {
+ align-self:center;
+ flex:none;
+ max-width:100%;
+ margin:0;
+ padding:8px 28px 9px;
+ border:1px solid #7a5225;
+ border-radius:13px;
+ box-shadow:inset 0 1px #fff9d3,0 3px #15395c;
+ background:var(--cab-plate);
+ color:var(--cab-ink);
+ font-size:32px;
+ line-height:1.14;
+}
+.cab-fastener {
+ position:absolute;
+ width:11px;
+ height:11px;
+ border:1px solid #755023;
+ border-radius:50%;
+ background:var(--cab-brass);
+ box-shadow:0 1px 1px #102f4d;
+ pointer-events:none;
+}
+.cab-fastener::after {
+ content:"";
+ position:absolute;
+ inset:4px 1px auto;
+ height:1px;
+ background:#785328;
+ transform:rotate(-45deg);
+}
+.cab-fastener.top{top:12px}
+.cab-fastener.bottom{bottom:12px}
+.cab-fastener.left{left:12px}
+.cab-fastener.right{right:12px}
+
+.racer-panels {
+ display:grid;
+ grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:start;
+ gap:14px;
+ min-height:0;
+ overflow:auto;
+ padding:3px;
+ scroll-padding:6px;
+ overscroll-behavior:contain;
+}
+.racer-panel {
+ min-width:0;
+ padding:10px 10px 11px;
+ border:2px solid #e6b968;
+ border-radius:17px;
+ box-shadow:inset 0 2px 3px #102d4b,0 2px #143b60;
+ background:linear-gradient(#153f68,#1c537f);
+}
+.racer-panel-heading{display:flex;margin-bottom:8px}
+.racer-panel h3 {
+ margin:0;
+ padding:3px 10px;
+ border:1px solid #aa7b37;
+ border-radius:6px;
+ background:var(--cab-plate);
+ box-shadow:inset 0 1px #fff3bf;
+ color:var(--cab-ink);
+ font-size:15px;
+ line-height:1.2;
+ font-weight:850;
+}
+.racer-dropdown{margin-top:12px;padding-top:6px;border-top:1px solid #e6b96880}
+.racer-grid {
+ display:flex;
+ flex-direction:column;
+ gap:10px;
+ height:clamp(100px,38dvh,286px);
+ overflow-y:auto;
+ overflow-x:hidden;
+ padding:6px 8px 9px 6px;
+ scroll-padding:8px;
+ scrollbar-gutter:stable;
+ scrollbar-color:#ddba73 #173e62;
+ touch-action:pan-y;
+ overscroll-behavior-y:contain;
+}
+.picker-scroll-hint{margin:7px 0 0;font-size:13px;font-weight:700;color:#fff0bb}
+.racer-choice {
+ --portrait-size:60px;
+ --portrait-gap:11px;
+ --choice-padding:9px;
+ position:relative;
+ display:flex;
+ flex:0 0 auto;
+ align-items:center;
+ justify-content:flex-start;
+ gap:var(--portrait-gap);
+ min-width:0;
+ min-height:82px;
+ padding:var(--choice-padding) 13px var(--choice-padding) var(--choice-padding);
+ border:2px solid #866131;
+ border-radius:12px;
+ background:var(--cab-cream);
+ box-shadow:inset 0 1px #fffef3,0 3px #102f4f;
+ color:var(--cab-ink);
+ font-size:clamp(18px,3vw,23px);
+ font-weight:800;
+ text-align:left;
+ scroll-margin:5px;
+}
+.racer-choice svg {
+ flex:0 0 var(--portrait-size);
+ width:var(--portrait-size);
+ height:var(--portrait-size);
+ padding:5px;
+ border:1px solid #c3974c;
+ border-radius:11px;
+ box-shadow:inset 0 1px #fffdfa;
+ background:#fff8df;
+}
+.racer-choice[aria-pressed="true"]{border-color:#9b6928;background:var(--cab-plate);box-shadow:inset 0 0 0 2px #fff1ad,0 3px #102f4f}
+.racer-choice[aria-pressed="true"]::after {
+ content:'✓';
+ position:absolute;
+ top:6px;
+ right:6px;
+ width:21px;
+ height:21px;
+ border-radius:50%;
+ background:#604015;
+ color:#fff2c0;
+ font-size:15px;
+ line-height:21px;
+ text-align:center;
+}
+.racer-choice:disabled{opacity:1;background:#e1d7be;color:#594a38;border-color:#ac9572;box-shadow:none;cursor:not-allowed}
+.racer-choice:disabled>span:not(.racer-unavailable){transform:translateY(-7px)}
+.racer-unavailable {
+ position:absolute;
+ left:calc(2px + var(--choice-padding) + var(--portrait-size) + var(--portrait-gap));
+ top:calc(50% + 6px);
+ color:#655138;
+ font-size:11px;
+ line-height:1.1;
+}
+.racer-unavailable:empty{display:none}
+.racer-choice.is-selected,.racer-choice:focus-visible,#raceStartOverlay .cab-race:focus-visible{outline:3px solid #fff0a1;outline-offset:2px}
+.racer-picker-toggle{width:100%}
+.picker-selected-label{display:grid;gap:3px;min-width:0;line-height:1.1}
+.picker-selected-label small{color:#6d4e27;font-size:13px;font-weight:650}
+.picker-arrow {
+ flex:none;
+ width:9px;
+ height:9px;
+ margin-left:auto;
+ border:solid #69491f;
+ border-width:0 2px 2px 0;
+ transform:translateY(-2px) rotate(45deg);
+}
+.racer-picker-toggle[aria-expanded="true"] .picker-arrow{transform:translateY(2px) rotate(225deg)}
+
+.picker-footer{flex:none;display:flex;justify-content:center}
+#raceStartOverlay .cab-race {
+ width:min(100%,280px);
+ min-height:54px;
+ padding:6px 16px;
+ gap:11px;
+ border:4px solid #e8bd69;
+ border-radius:16px;
+ background:linear-gradient(#e95850,#a92430);
+ box-shadow:inset 0 1px #ffac91,inset 0 0 0 1px #842330,0 3px #733f27;
+ color:#fff6df;
+ text-shadow:0 1px #731e23;
+ font-size:25px;
+ font-weight:900;
+}
+#raceStartOverlay .cab-race:active{transform:translateY(2px);box-shadow:inset 0 1px #ffac91,0 1px #733f27}
+.cab-race-icon{width:16px;height:18px;clip-path:polygon(0 0,100% 50%,0 100%);background:currentColor}
+#raceUnavailable{color:#fff1bb;font-size:13px;line-height:1.2}
 .cab-mode{position:relative;align-self:center;width:min(100%,316px);aspect-ratio:316/86;flex:none;isolation:isolate}
 .cab-mechanism{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;filter:drop-shadow(0 3px 0 #52331426)}
 .cab-position{position:absolute;inset:0 50% 0 0;display:flex;align-items:center;justify-content:flex-start;border:0;background:transparent;padding:0 0 4px 8.3%;border-radius:22px;color:#342719;font-size:16px;font-weight:900}
@@ -646,19 +827,43 @@ body{height:100dvh;overflow:hidden}
 .cab-position:hover span{filter:brightness(1.08)}
 .cab-handle{transform-origin:158px 65px;transform:rotate(-47deg);transition:transform 220ms cubic-bezier(.2,.8,.3,1.18)}
 .cab-mode[data-selected="full"] .cab-handle{transform:rotate(47deg)}
+.cab-position:focus-visible{outline:none}
+.cab-position:focus-visible span{outline:3px solid #fff0a1;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.cab-handle{transition:none}}
 @media(max-height:380px) and (orientation:landscape){.cab-mode{width:min(100%,262px)}.cab-position{font-size:14px}.cab-position span{min-width:55px;padding:4px 6px}}
-#startRaceButton{min-height:56px;width:min(100%,300px);font-size:24px;border-radius:18px}
 #raceMatchup{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:#fffaf0ee;border-radius:18px;pointer-events:none;color:#194e76;max-width:95%;z-index:2}
 #raceMatchup svg{width:50px;height:50px}#raceMatchup span{font-weight:800}
-@media(max-width:600px){#raceStartOverlay .modal{padding:10px;border-width:3px;border-radius:20px;gap:8px}.racer-panels{grid-template-columns:1fr;gap:10px}.racer-panel{padding:9px}.racer-panel h3{font-size:21px}.racer-grid{height:190px;min-height:130px;gap:8px}.racer-choice{flex-basis:84px;min-height:84px;font-size:17px;padding:6px;gap:12px}.racer-choice svg{width:64px;height:64px;flex-basis:64px}.racer-unavailable{left:85px;bottom:7px;font-size:10px}.picker-current{font-size:12px;padding:4px 8px}.picker-scroll-hint{font-size:12px}#raceStartOverlay h2{font-size:23px}#raceMatchup{gap:7px;padding:6px 9px}#raceMatchup svg{width:38px;height:38px}#raceMatchup span{font-size:12px}}
-.racer-picker-toggle{width:100%;min-height:104px;box-sizing:border-box;border-color:#43885c;background:#f3fbf1;gap:12px}
-.racer-picker-toggle>span.picker-selected-label{display:flex;flex:1;flex-direction:column;gap:5px;min-width:0;padding-right:0}
-.picker-selected-label strong{font:inherit}.picker-selected-label small{font-size:13px;font-weight:600;color:#58748a}
-.racer-picker-toggle .picker-arrow{padding:0!important;flex:none;font-size:25px;transition:transform .15s}
-.racer-picker-toggle[aria-expanded="true"] .picker-arrow{transform:rotate(180deg)}
-.racer-dropdown{margin-top:12px;padding-top:6px;border-top:1px solid #bed7df}
-@media(max-width:600px){.racer-picker-toggle{min-height:84px}.racer-picker-toggle .picker-arrow{font-size:22px}.racer-dropdown{margin-top:8px}}
+@media(max-width:600px){
+ #raceStartOverlay .modal{padding:20px 14px;gap:15px}
+ #raceStartOverlay h2{padding-inline:20px;font-size:clamp(21px,5vw,30px)}
+ .racer-panels{grid-template-columns:1fr;gap:11px}
+ .racer-grid{height:190px;gap:8px}
+ .racer-choice{--portrait-size:49px;--choice-padding:6px;min-height:68px}
+ .racer-dropdown{margin-top:8px}
+ .picker-scroll-hint{font-size:12px}
+ #raceMatchup{gap:7px;padding:6px 9px}
+ #raceMatchup svg{width:38px;height:38px}
+ #raceMatchup span{font-size:12px}
+}
+@media(max-height:500px) and (orientation:landscape){
+ #raceStartOverlay{padding:5px}
+ #raceStartOverlay .modal{padding:6px 8px;gap:5px;border-width:3px;border-radius:20px}
+ #raceStartOverlay h2{padding:3px 16px;font-size:19px}
+ .cab-fastener.top{top:7px}
+ .cab-fastener.bottom{bottom:7px}
+ .cab-fastener.left{left:7px}
+ .cab-fastener.right{right:7px}
+ .racer-panels{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:8px}
+ .racer-panel{max-height:100%;overflow-y:auto;padding:5px 6px;border-radius:12px;scroll-padding:6px;scrollbar-width:thin;scrollbar-color:#ddba73 #173e62;overscroll-behavior-y:contain}
+ .racer-panel-heading{margin-bottom:4px}
+ .racer-panel h3{padding:2px 8px;font-size:14px}
+ .racer-choice{--portrait-size:40px;--portrait-gap:8px;--choice-padding:4px;min-height:52px;font-size:16px}
+ .racer-choice svg{padding:3px;border-radius:8px}
+ .picker-selected-label small,.racer-unavailable{font-size:11px}
+ .racer-grid{height:auto;overflow:visible;scrollbar-gutter:auto}
+ .racer-dropdown{margin-top:6px;padding-top:4px}
+ #raceStartOverlay .cab-race{min-height:44px;font-size:18px;padding:5px 12px}
+}
 
 
 /* Keep the moving finish visible behind compact, reachable result controls. */
@@ -709,15 +914,6 @@ body{height:100dvh;overflow:hidden}
  .is-race .actions .whistle{flex:0 0 68px;min-width:64px;max-width:72px;min-height:64px;height:64px;padding:4px;flex-direction:row}
  .is-race .actions .whistle .control-picture{width:52px;height:48px}
  .is-race .actions .keycap{display:none}
- #raceStartOverlay{padding:8px}
- #raceStartOverlay .modal{gap:8px;padding:10px;border-width:3px}
- #raceStartOverlay h2{font-size:21px;flex:none}
- .racer-panels{flex:0 1 auto;min-height:0;overscroll-behavior:contain;touch-action:pan-y}
- .picker-footer{padding:2px}
- #startRaceButton{min-height:48px;font-size:21px}
- .racer-picker-toggle{min-height:72px}
- .racer-picker-toggle svg{width:52px;height:52px;flex-basis:52px}
- .racer-panel h3{font-size:18px}
  #raceMatchup{top:12px}
  .race-start-lights{top:50%;gap:8px;padding:10px 14px;border-width:3px}
  .race-start-lights span{width:34px;height:34px;border-width:3px}
@@ -741,16 +937,6 @@ body{height:100dvh;overflow:hidden}
 
 
 
- #raceStartOverlay{padding:5px}
- #raceStartOverlay .modal{padding:6px 8px;gap:5px}
- #raceStartOverlay h2{font-size:19px}
- .racer-panels{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:4px}
- .racer-panel{padding:6px;border-radius:12px}.racer-panel-heading{margin-bottom:3px}.racer-panel h3{font-size:16px}
- .racer-choice{flex-basis:56px;min-height:56px;padding:4px 6px;font-size:16px;gap:8px}
- .racer-choice svg{width:44px;height:44px;flex-basis:44px}
- .picker-selected-label small{font-size:11px}.racer-unavailable{left:60px;font-size:9px;bottom:2px}
- .racer-grid{height:124px;min-height:0}.racer-dropdown{margin-top:6px;padding-top:4px}
- #startRaceButton{min-height:44px;font-size:18px;padding:5px 12px}
  #raceMatchup{top:8px;padding:3px 8px;gap:6px}#raceMatchup svg{width:26px;height:26px}#raceMatchup span{font-size:12px}
  .race-start-lights{top:50%;padding:6px 10px}.race-start-lights span{width:26px;height:26px}
  .pause-engine{width:54px;height:54px}.pause-rest{font-size:28px}
@@ -1430,18 +1616,23 @@ body{height:100dvh;overflow:hidden}
     
     
 <section id="raceStartOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="racerPickerTitle" hidden>
- <div class="modal"><h2 id="racerPickerTitle">Choose your players</h2>
+ <div class="modal">
+  <span class="cab-fastener top left" aria-hidden="true"></span>
+  <span class="cab-fastener top right" aria-hidden="true"></span>
+  <span class="cab-fastener bottom left" aria-hidden="true"></span>
+  <span class="cab-fastener bottom right" aria-hidden="true"></span>
+  <h2 id="racerPickerTitle">Choose your players</h2>
  <div class="racer-panels"><section id="playerPickerPanel" class="racer-panel" aria-labelledby="playerPickerTitle">
  <div class="racer-panel-heading"><h3 id="playerPickerTitle">You</h3></div>
  <button id="playerPickerButton" class="racer-choice racer-picker-toggle" data-action="toggle-player-picker" data-narration="race.character.thomas" aria-expanded="false" aria-controls="playerPickerMenu" aria-label="You: Thomas. Change character">
  <svg viewBox="0 0 100 100" aria-hidden="true"><use id="playerChoicePortrait" href="#portrait-thomas" width="100" height="100"/></svg>
- <span class="picker-selected-label"><strong id="playerChoiceName">Thomas</strong><small>Change</small></span><span class="picker-arrow" aria-hidden="true">▾</span></button>
+ <span class="picker-selected-label"><strong id="playerChoiceName">Thomas</strong><small>Change</small></span><span class="picker-arrow" aria-hidden="true"></span></button>
  <div id="playerPickerMenu" class="racer-dropdown" hidden><div id="playerChoices" class="racer-grid" role="group" aria-label="Your character choices" aria-describedby="playerScrollHint"></div><p id="playerScrollHint" class="picker-scroll-hint">Scroll for more friends ↕</p></div>
- </section><section id="opponentPickerPanel" class="racer-panel computer" aria-labelledby="opponentPickerTitle">
+ </section><section id="opponentPickerPanel" class="racer-panel" aria-labelledby="opponentPickerTitle">
  <div class="racer-panel-heading"><h3 id="opponentPickerTitle">Computer</h3></div>
  <button id="opponentPickerButton" class="racer-choice racer-picker-toggle" data-action="toggle-opponent-picker" data-narration="race.character.random" aria-expanded="false" aria-controls="opponentPickerMenu" aria-label="Computer: Random. Change character">
  <svg viewBox="0 0 100 100" aria-hidden="true"><use id="opponentChoicePortrait" href="#portrait-random" width="100" height="100"/></svg>
- <span class="picker-selected-label"><strong id="opponentChoiceName">Random</strong><small>Change</small></span><span class="picker-arrow" aria-hidden="true">▾</span></button>
+ <span class="picker-selected-label"><strong id="opponentChoiceName">Random</strong><small>Change</small></span><span class="picker-arrow" aria-hidden="true"></span></button>
  <div id="opponentPickerMenu" class="racer-dropdown" hidden><div id="opponentChoices" class="racer-grid" role="group" aria-label="Computer character choices" aria-describedby="opponentScrollHint"></div><p id="opponentScrollHint" class="picker-scroll-hint">Scroll for more friends ↕</p></div>
  </section></div>
  <div id="driveModeControl" class="cab-mode" data-selected="full" role="group" aria-label="Driving mode">
@@ -1453,7 +1644,7 @@ body{height:100dvh;overflow:hidden}
         <linearGradient id="cab-enamel" x2="0" y2="1">
           <stop stop-color="#2879b9"/><stop offset="1" stop-color="#114d82"/>
         </linearGradient>
-        <linearGradient id="cab-shaft" x2="1" y2="0">
+        <linearGradient id="cab-shaft" gradientUnits="userSpaceOnUse" x1="154" x2="162" y1="0" y2="0">
           <stop stop-color="#795323"/><stop offset=".43" stop-color="#fff3b7"/><stop offset=".67" stop-color="#e0ac4d"/><stop offset="1" stop-color="#a26e2c"/>
         </linearGradient>
         <radialGradient id="cab-grip" cx=".37" cy=".28" r=".77">
@@ -1486,7 +1677,7 @@ body{height:100dvh;overflow:hidden}
     <button class="cab-position" type="button" id="driveModeLight" data-action="select-drive-mode" data-value="light" aria-pressed="false"><span>Light</span></button>
     <button class="cab-position" type="button" id="driveModeFull" data-action="select-drive-mode" data-value="full" aria-pressed="true"><span>Full</span></button>
   </div>
- <div class="picker-footer"><button id="startRaceButton" class="action action-green" data-action="start-race" data-narration="race.menu" aria-label="Start a race" aria-keyshortcuts="Enter">▶ Race!</button></div>
+ <div class="picker-footer"><button id="startRaceButton" class="action cab-race" data-action="start-race" data-narration="race.menu" aria-label="Start a race" aria-keyshortcuts="Enter"><span class="cab-race-icon" aria-hidden="true"></span>Race!</button></div>
  <div id="raceUnavailable" role="status" hidden>The race cannot start in this browser. Please try another browser with WebGL enabled.</div></div>
 </section>
     <section id="pauseOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden><div class="modal"><div class="modal-picture" aria-hidden="true"><svg class="pause-engine" viewBox="0 0 100 100"><use id="pausePortrait" href="#portrait-thomas" width="100" height="100"/></svg><span class="pause-rest">💤</span></div><h2 id="pauseTitle">Taking a rest</h2><p class="modal-intro">Ready when you are!</p><div class="modal-actions"><button class="action action-green" data-action="resume" data-narration="ui.resume" aria-label="Keep playing"><span class="resume-picture" aria-hidden="true">▶</span><span class="sr-only">Keep playing</span></button></div></div></section>
