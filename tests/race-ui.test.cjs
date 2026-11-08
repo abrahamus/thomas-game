@@ -242,7 +242,7 @@ test('the train waits for Up without a start banner',()=>{
  const ui=setup();start(ui);
  assert.equal(node(ui,'speedCue'),null);
  go(ui);
- assert.match(html, /#footerDashboard \.race-utility\{background:#1677ae/);
+ assert.equal(node(ui,'action-accelerate').hidden,false);
  ui.frames(8,80);
  assert.equal(ui.state().race.player.distance,0);
  complete(ui);ui.click('#skipCelebration');ui.click('#rewardReplay');go(ui);

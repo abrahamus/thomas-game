@@ -524,7 +524,7 @@ body{height:100dvh;overflow:hidden}
 .is-race .checkpoint-ticks{gap:5px}
 .is-race .checkpoint-tick{width:14px;height:14px}
 .is-race .checkpoint-tick.complete:after{font-size:11px;line-height:14px}
-.race-start-lights{position:absolute;z-index:4;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:18px;padding:18px 24px;border:5px solid #fff3d4;border-radius:26px;background:#253c50;box-shadow:0 6px 0 #172c4340;pointer-events:none}
+.race-start-lights{position:absolute;z-index:4;left:50%;top:42%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:18px;padding:18px 24px;border-radius:26px;pointer-events:none}
 .race-start-lights span{display:block;width:58px;height:58px;border-radius:50%;border:4px solid #102a3e;background:#4d5965}
 .race-start-lights .lit-red{background:#f25050;box-shadow:0 0 14px #ffb5a2}
 .race-start-lights .lit-amber{background:#ffd357;box-shadow:0 0 14px #fff0ac}
@@ -534,7 +534,7 @@ body{height:100dvh;overflow:hidden}
  #menuOverlay .menu-cards{gap:9px}
  #menuOverlay .menu-card{padding:12px 6px;min-height:170px}
  #menuOverlay .card-picture svg{width:128px;max-width:100%;height:96px}
- .race-start-lights{gap:10px;padding:12px 16px;border-width:4px}
+ .race-start-lights{gap:10px;padding:12px 16px}
  .race-start-lights span{width:44px;height:44px}
 }
 @media(max-width:450px){
@@ -619,15 +619,21 @@ body{height:100dvh;overflow:hidden}
  .is-race .actions .action-race-help{min-height:100px}
  .is-race .actions .action-race-help .control-picture{height:70px}
 }
-/* The start screen is the steam cab dashboard. Other dialogs keep their own theme. */
-#raceStartOverlay {
+/* The start screen and race overlays share the steam cab finish. */
+.cab-panel {
  --cab-brass:linear-gradient(180deg,#fff0b0 0%,#e8ba65 28%,#a87b39 66%,#e8bd69 100%);
  --cab-plate:linear-gradient(180deg,#fff1bb,#e9bb63);
  --cab-cream:linear-gradient(#fff6d5,#f1d294);
  --cab-ink:#332719;
- padding:8px;
+ border:3px solid transparent;
+ background:var(--cab-face,linear-gradient(157deg,#2671aa,#144c7b)) padding-box,var(--cab-brass) border-box;
+ box-shadow:inset 0 0 0 1px #103a61,inset 0 0 0 2px #80bde06b,0 3px 0 #775128,0 5px 9px #20394b40;
+ color:#fff6df;
 }
+#raceStartOverlay{padding:8px}
+
 #raceStartOverlay .modal {
+ --cab-face:linear-gradient(157deg,#3187c4 0%,#216da7 42%,#144c7b 100%);
  position:relative;
  display:flex;
  flex-direction:column;
@@ -638,7 +644,6 @@ body{height:100dvh;overflow:hidden}
  overflow:hidden;
  border:5px solid transparent;
  border-radius:29px;
- background:linear-gradient(157deg,#3187c4 0%,#216da7 42%,#144c7b 100%) padding-box,var(--cab-brass) border-box;
  box-shadow:inset 0 0 0 2px #103a61,inset 0 0 0 4px #80bde06b,0 3px 0 #775128,0 6px 0 #61462226;
 }
 #raceStartOverlay h2 {
@@ -831,7 +836,7 @@ body{height:100dvh;overflow:hidden}
 .cab-position:focus-visible span{outline:3px solid #fff0a1;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.cab-handle{transition:none}}
 @media(max-height:380px) and (orientation:landscape){.cab-mode{width:min(100%,262px)}.cab-position{font-size:14px}.cab-position span{min-width:55px;padding:4px 6px}}
-#raceMatchup{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px;background:#fffaf0ee;border-radius:18px;pointer-events:none;color:#194e76;max-width:95%;z-index:2}
+#raceMatchup{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 16px;border-radius:18px;pointer-events:none;max-width:95%;z-index:2}
 #raceMatchup svg{width:50px;height:50px}#raceMatchup span{font-weight:800}
 @media(max-width:600px){
  #raceStartOverlay .modal{padding:20px 14px;gap:15px}
@@ -868,21 +873,21 @@ body{height:100dvh;overflow:hidden}
 
 /* Keep the moving finish visible behind compact, reachable result controls. */
 .festival-hud{position:absolute;inset:12px 8px auto;z-index:3;pointer-events:none;text-align:center;color:#213e50}
-.festival-caption{display:inline-block;max-width:100%;padding:8px 16px;border:2px solid #e8bf57;border-radius:18px;background:#fff8e7ed;box-shadow:0 3px 10px #27455220}
+.festival-caption{display:inline-block;max-width:100%;padding:8px 16px;border-width:2px;border-radius:18px}
 .festival-caption strong{display:block;font-size:clamp(16px,2vw,23px)}
 .festival-caption p{margin:4px 0;font-size:14px}
 .festival-job-row{display:flex;justify-content:center;gap:3px;max-width:400px;margin:7px auto 0}
 .festival-job-row svg{width:clamp(24px,7vw,42px);height:38px;opacity:.25;background:#fff4d4;border-radius:9px;border:1px solid #e3ca82}
 .festival-job-row svg.lit{opacity:1;background:#fff1a4;box-shadow:0 0 6px #f3d264}
-#skipCelebration{min-height:44px;padding:8px 16px;font-size:15px;border:2px solid #244f67;border-radius:14px;background:#fff7dc;color:#244458;cursor:pointer}
+#skipCelebration{min-height:44px;padding:8px 16px;font-size:15px;font-weight:800;border-radius:14px}
 #footerDashboard.festival-footer{padding:6px;gap:0;min-height:65px}
 .festival-footer .actions{min-height:60px!important;gap:12px;flex-wrap:wrap!important}
 .festival-footer .actions .whistle{min-height:56px;max-width:80px;flex-basis:70px;flex-direction:row}
 .festival-footer .actions .whistle .control-picture{height:42px;width:50px}
 .festival-footer .keycap{display:none}
 #rewardOverlay.festival-results{inset:auto 0 8px;padding:0 10px;pointer-events:none;background:none;backdrop-filter:none;overflow:visible}
-.festival-results .modal{pointer-events:auto;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:4px 12px;width:min(530px,100%);max-height:none;padding:10px 14px;border-radius:20px;background:#fff9e9f5;box-shadow:0 4px 20px #24445830}
-.festival-results .reward-sticker{grid-row:1 / 3;width:58px;height:58px;margin:0;border-width:3px;position:relative}
+.festival-results .modal{pointer-events:auto;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:4px 12px;width:min(530px,100%);max-height:none;padding:10px 14px;border-radius:20px}
+.festival-results .reward-sticker{grid-row:1 / 3;width:58px;height:58px;margin:0;border:3px solid #d6aa4d;background:var(--cab-cream);box-shadow:0 2px 0 #163f61;position:relative}
 #festivalResultAward{position:absolute;right:-12px;bottom:-4px;width:35px;height:35px}
 .festival-results #rewardStars{font-size:17px;margin:0;letter-spacing:4px}
 .festival-results .modal-actions{display:flex;margin:0;gap:8px;flex-wrap:nowrap}
@@ -958,16 +963,48 @@ body{height:100dvh;overflow:hidden}
 .is-race #raceCanvas{position:absolute;inset:0;width:100%;height:100%}
 #footerDashboard.is-race{--control-height:48px;--control-width:80px;position:absolute;z-index:3;left:12px;right:12px;bottom:12px;min-height:0;padding:0;gap:0;border:0;background:transparent;pointer-events:none}
 #footerDashboard.is-race .actions{width:100%;max-width:none;min-height:0;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:stretch;justify-content:flex-start;gap:10px}
-#footerDashboard.is-race .actions .action{position:relative;order:0;flex:0 0 var(--control-width);width:var(--control-width);min-width:var(--control-width);max-width:var(--control-width);height:var(--control-height);min-height:0;flex-direction:row;gap:4px;padding:2px 4px;border:2px solid #fffdf5;border-radius:10px;box-shadow:0 2px 0 #20394b55,0 3px 7px #20394b25;pointer-events:auto}
+#footerDashboard.is-race .actions .action{position:relative;order:0;flex:0 0 var(--control-width);width:var(--control-width);min-width:var(--control-width);max-width:var(--control-width);height:var(--control-height);min-height:0;flex-direction:row;gap:4px;padding:2px 4px;border:2px solid var(--control-edge,#fffdf5);border-radius:10px;box-shadow:inset 0 2px #ffffff42,0 2px 0 var(--control-shadow,#20394b55),0 3px 7px #20394b25;pointer-events:auto}
 /* Keep short visible buttons easy to tap without covering the gap or scene. */
 #footerDashboard.is-race .actions .action::after{content:"";position:absolute;left:0;right:0;top:min(0px,calc((var(--control-height) - 44px)/2));bottom:min(0px,calc((var(--control-height) - 44px)/2))}
-#footerDashboard.is-race .actions .action-race-help{background:#f9d85e;color:#20394b}
+#footerDashboard.is-race .actions .action-race-help{--control-hint:#9c6b23}
 #footerDashboard.is-race .actions .action-race-help .control-picture{width:24px;height:24px}
-#footerDashboard.is-race .actions .whistle{background:#c1b2e5;color:#20394b}
+#footerDashboard.is-race .actions .whistle{--control-hint:#93d5f9}
 #footerDashboard.is-race .actions .whistle .control-picture{width:20px;height:23px}
 #footerDashboard .control-label{font:700 12px/1 "Trebuchet MS",Arial,sans-serif;text-align:center;white-space:nowrap}
 #footerDashboard .control-spacer{display:block;flex:1;min-width:0}
-#footerDashboard .race-utility{background:#1677ae;color:#fffdf5}
+/* Action faces and edges use the same color family on every screen. */
+.cab-button-blue {
+ --control-edge:#225e8e;
+ --control-shadow:#163f61;
+ --control-face:linear-gradient(#3187c4,#144c7b);
+}
+.cab-button-yellow {
+ --control-edge:#d6aa4d;
+ --control-shadow:#85652f;
+ --control-face:linear-gradient(#fff1b6,#e4b34f);
+ --control-ink:#372517;
+}
+.cab-button-red {
+ --control-edge:#a72d36;
+ --control-shadow:#70262b;
+ --control-face:linear-gradient(#e95850,#a92430);
+}
+.cab-button {
+ border:2px solid var(--control-edge);
+ background:var(--control-face);
+ color:var(--control-ink,#fff6df);
+ box-shadow:inset 0 2px #ffffff42,0 2px 0 var(--control-shadow),0 3px 7px #20394b25;
+}
+.cab-button:active{transform:translateY(2px);box-shadow:0 1px 0 var(--control-shadow)}
+.cab-button:focus-visible,#albumItems .sticker:focus-visible{outline:3px solid #fff0a1;outline-offset:2px}
+#albumOverlay .cab-panel{display:flex;flex-direction:column;gap:12px;width:min(520px,100%);padding:16px}
+#albumItems{min-height:0;margin:0;padding:5px;gap:10px;overflow:auto}
+#albumItems .sticker{min-width:56px;min-height:48px;padding:6px 10px;background:var(--cab-plate);border:2px solid #d6aa4d;color:var(--cab-ink);box-shadow:0 2px #775128}
+#albumItems .sticker svg{width:48px;height:48px}
+#albumItems .sticker-icon{font-size:26px}
+#albumOverlay .modal-actions{flex:none;margin:0}
+#albumOverlay .cab-button{flex:0 1 184px;min-width:0;min-height:44px;padding:6px 10px;gap:7px;font-size:15px}
+
 #footerDashboard.is-race{--dial-size:120px}
 @media(min-width:360px){#footerDashboard.is-race{--dial-size:132px}}
 @media(min-width:701px) and (min-height:501px){#footerDashboard.is-race{--dial-size:160px}}
@@ -975,7 +1012,7 @@ body{height:100dvh;overflow:hidden}
  #footerDashboard.is-race .actions .action:not(.race-speed){--control-width:50px}
  #footerDashboard.is-race .actions{gap:5px}
 }
-#footerDashboard.is-race .actions .action.race-speed{--control-width:var(--dial-size);height:var(--dial-size);align-self:flex-end;padding:0;border:0;border-radius:50%;background:#16699e;box-shadow:0 3px 0 #153447,0 4px 8px #20394b55;touch-action:none;user-select:none}
+#footerDashboard.is-race .actions .action.race-speed{--control-width:var(--dial-size);height:var(--dial-size);align-self:flex-end;padding:0;border:0;border-radius:50%;background:linear-gradient(#2b79ab,#184c74);box-shadow:0 3px 0 #153447,0 4px 8px #20394b55;touch-action:none;user-select:none}
 .race-speed svg{display:block;width:100%;height:100%;overflow:visible}
 .race-speed .speed-ticks{stroke:#20394b;stroke-width:1.5;stroke-linecap:round}
 .race-speed .speed-ticks path:nth-child(5n+1){stroke-width:2.4}
@@ -985,8 +1022,8 @@ body{height:100dvh;overflow:hidden}
 #footerDashboard.is-race .actions .race-speed:disabled{opacity:1;background:#4e6d7c;pointer-events:none;box-shadow:none}
 #footerDashboard .utility-picture{display:flex;flex:none;align-items:center;justify-content:center;width:19px;height:19px;font-size:23px;font-family:Arial,sans-serif;line-height:1}
 #footerDashboard .pause-bars{font-size:20px;font-weight:900}
-#footerDashboard.is-race .actions .hint{box-shadow:0 2px 0 #20394b55,0 0 0 3px #f8cd67}
-#footerDashboard.is-race .actions .action:active{transform:translateY(2px);box-shadow:0 1px 0 #20394b55}
+#footerDashboard.is-race .actions .action.hint:not(:active){border-color:var(--control-hint);box-shadow:inset 0 0 0 2px var(--control-hint),0 2px 0 var(--control-shadow),0 3px 7px #20394b25}
+#footerDashboard.is-race .actions .action:active{transform:translateY(2px);box-shadow:0 1px 0 var(--control-shadow,#20394b55)}
 #footerDashboard.festival-footer .actions{min-height:0!important;flex-wrap:nowrap!important}
 #footerDashboard #skipCelebration{position:absolute;left:0;bottom:calc(var(--control-height) + 16px);width:auto;max-width:220px;min-width:0;min-height:44px;padding:6px 12px;font-size:14px;pointer-events:auto}
 #pauseOverlay .modal{width:min(300px,100%);padding:20px;border-radius:24px}
@@ -994,7 +1031,7 @@ body{height:100dvh;overflow:hidden}
 #pauseOverlay .pause-engine{width:96px;height:96px}
 #pauseOverlay .pause-rest{font-size:30px}
 #pauseOverlay .modal-actions{margin-top:14px}
-#pauseOverlay .action{flex:0 1 160px;min-width:0;min-height:60px;padding:4px 12px}
+#pauseOverlay .action{flex:0 1 184px;min-width:0;min-height:60px;padding:4px 12px;gap:7px;font-size:15px}
 #pauseOverlay .resume-picture{font-size:38px}
 @media(max-width:700px) and (orientation:portrait){
  #footerDashboard.is-race{--control-height:48px;--control-width:56px}
@@ -1008,7 +1045,7 @@ body{height:100dvh;overflow:hidden}
 }
 @media(max-height:500px) and (orientation:landscape){
  #footerDashboard.is-race{--control-height:48px;--control-width:72px}
- #footerDashboard.is-race .actions .action{gap:3px;padding:1px 4px;border-width:1px;border-radius:7px;box-shadow:0 1px 0 #20394b55,0 2px 5px #20394b25}
+ #footerDashboard.is-race .actions .action{gap:3px;padding:1px 4px;border-width:1px;border-radius:7px;box-shadow:inset 0 1px #ffffff42,0 1px 0 var(--control-shadow,#20394b55),0 2px 5px #20394b25}
  #footerDashboard.is-race .actions .action-race-help .control-picture{width:24px;height:18px}
  #footerDashboard.is-race .actions .whistle .control-picture{width:20px;height:17px}
  #footerDashboard .control-label{font-size:11px}
@@ -1016,7 +1053,7 @@ body{height:100dvh;overflow:hidden}
  #footerDashboard .pause-bars{font-size:16px}
  #pauseOverlay .modal{width:min(220px,100%);padding:12px;border-radius:20px}
  #pauseOverlay .pause-engine{width:64px;height:64px}#pauseOverlay .pause-rest{font-size:24px}
- #pauseOverlay .modal-actions{margin-top:10px}#pauseOverlay .action{flex-basis:128px;min-height:48px}
+ #pauseOverlay .modal-actions{margin-top:10px}#pauseOverlay .action{flex-basis:152px;min-height:48px;font-size:13px}
  #pauseOverlay .resume-picture{font-size:30px}
 }
 @media(max-width:540px) and (orientation:landscape){
@@ -1052,8 +1089,8 @@ body{height:100dvh;overflow:hidden}
         <div id="playWorld" class="play-world">
         
         <div class="scene-surface">
-<canvas id="raceCanvas" aria-label="Racing through Sodor" hidden></canvas><div id="raceMatchup" hidden><svg viewBox="0 0 100 100" aria-hidden="true"><use id="matchupPlayerPortrait" width="100" height="100"/></svg><span id="matchupPlayerName"></span><span>vs</span><svg viewBox="0 0 100 100" aria-hidden="true"><use id="matchupRivalPortrait" width="100" height="100"/></svg><span id="matchupRivalName"></span></div><div id="raceStartLights" class="race-start-lights" role="status" aria-label="Race starting lights" hidden><span id="raceRedLight"></span><span id="raceAmberLight"></span><span id="raceGreenLight"></span></div>
-<div id="festivalHud" class="festival-hud" hidden><div class="festival-caption"><strong id="festivalTitle">Sodor Finish-Line Festival</strong><p id="festivalMessage" role="status" aria-live="polite">Welcome to the finish!</p><div id="festivalJobs" class="festival-job-row" role="img" aria-label="Eight completed delivery jobs" hidden></div></div></div><svg id="pictureLibrary" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"><defs>
+<canvas id="raceCanvas" aria-label="Racing through Sodor" hidden></canvas><div id="raceMatchup" class="cab-panel" hidden><svg viewBox="0 0 100 100" aria-hidden="true"><use id="matchupPlayerPortrait" width="100" height="100"/></svg><span id="matchupPlayerName"></span><span>vs</span><svg viewBox="0 0 100 100" aria-hidden="true"><use id="matchupRivalPortrait" width="100" height="100"/></svg><span id="matchupRivalName"></span></div><div id="raceStartLights" class="race-start-lights cab-panel" role="status" aria-label="Race starting lights" hidden><span id="raceRedLight"></span><span id="raceAmberLight"></span><span id="raceGreenLight"></span></div>
+<div id="festivalHud" class="festival-hud" hidden><div class="festival-caption cab-panel"><strong id="festivalTitle">Sodor Finish-Line Festival</strong><p id="festivalMessage" role="status" aria-live="polite">Welcome to the finish!</p><div id="festivalJobs" class="festival-job-row" role="img" aria-label="Eight completed delivery jobs" hidden></div></div></div><svg id="pictureLibrary" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"><defs>
 <symbol id="portrait-bertie" viewBox="0 0 100 100"><g stroke="#172c43" stroke-width="2.5" stroke-linejoin="round"><path d="M8 32Q8 19 23 19H73Q86 19 91 34V79H7Z" fill="#ce3d3c"/><path d="M13 33H49V53H13Z" fill="#a8dff1"/><path d="M55 33H80L85 53H55Z" fill="#bfeaf5"/><path d="M31 34V52M50 30V76" fill="none"/><path d="M11 57H48V70H11Z" fill="#e95b4d"/><rect x="54" y="56" width="31" height="22" rx="7" fill="#e6e9e6"/><circle cx="23" cy="80" r="10" fill="#273e50"/><circle cx="74" cy="80" r="10" fill="#273e50"/><circle cx="23" cy="80" r="4" fill="#b7c8ce"/><circle cx="74" cy="80" r="4" fill="#b7c8ce"/><path d="M7 76H90" stroke="#ffe9b6" stroke-width="4"/><path d="M11 27H77" stroke="#ff9b7e" stroke-width="3"/><path d="M61 64Q63 60 66 64M73 64Q75 60 78 64M64 70Q70 76 77 69" fill="none" stroke-width="1.8"/></g></symbol>
 
 
@@ -1559,18 +1596,25 @@ body{height:100dvh;overflow:hidden}
         </div>
         <footer id="footerDashboard" class="dashboard">
             
-            <div id="drivingActions" class="actions" aria-label="Activity controls"><button id="skipCelebration" data-action="skip-celebration" data-narration="race.festival.skip" hidden>Skip celebration ⏭</button>
+            <div id="drivingActions" class="actions" aria-label="Activity controls"><button id="skipCelebration" class="cab-button cab-button-blue" data-action="skip-celebration" data-narration="race.festival.skip" hidden>Skip celebration ⏭</button>
                 
                 
                 
 
-<button id="action-whistle" class="action action-purple whistle" data-action="whistle" data-narration="ui.whistle" aria-label="Blow the whistle." aria-keyshortcuts="Space" hidden><svg class="control-picture" viewBox="0 0 120 100" aria-hidden="true"><use href="#rule-whistle" width="120" height="100"/></svg><span id="signalLabel" class="control-label">Whistle</span></button>
-<button id="action-race-help" class="action action-gold action-race-help" data-action="race-help" data-narration="race.service.wash" aria-label="Help at this stop" aria-keyshortcuts="Enter" hidden><svg class="control-picture" viewBox="0 0 120 100" aria-hidden="true"><use id="raceHelpPicture" href="#challenge-wash" width="120" height="100"/></svg><span id="raceHelpLabel" class="control-label">Help</span></button>
+<button id="action-whistle" class="action whistle cab-button cab-button-blue" data-action="whistle" data-narration="ui.whistle" aria-label="Blow the whistle." aria-keyshortcuts="Space" hidden><svg class="control-picture" viewBox="0 0 120 100" aria-hidden="true"><use href="#rule-whistle" width="120" height="100"/></svg><span id="signalLabel" class="control-label">Whistle</span></button>
+<button id="action-race-help" class="action action-race-help cab-button cab-button-yellow" data-action="race-help" data-narration="race.service.wash" aria-label="Help at this stop" aria-keyshortcuts="Enter" hidden><svg class="control-picture" viewBox="0 0 120 100" aria-hidden="true"><use id="raceHelpPicture" href="#challenge-wash" width="120" height="100"/></svg><span id="raceHelpLabel" class="control-label">Help</span></button>
 <span class="control-spacer" aria-hidden="true"></span>
-<button id="action-accelerate" type="button" class="action race-utility race-speed" data-action="accelerate" aria-label="Speed up. Current speed 0 miles per hour." aria-keyshortcuts="ArrowUp" hidden disabled>
+<button id="action-accelerate" type="button" class="action race-speed" data-action="accelerate" aria-label="Speed up. Current speed 0 miles per hour." aria-keyshortcuts="ArrowUp" hidden disabled>
 <svg viewBox="0 0 100 100" aria-hidden="true">
-  <circle cx="50" cy="50" r="48" fill="none" stroke="#b7e3f7" stroke-width="1.5"/>
-  <circle cx="50" cy="50" r="44.5" fill="#fff1c9" stroke="#b6302b" stroke-width="2.5"/>
+  <defs>
+    <linearGradient id="race-dial-brass" x2="0" y2="1">
+      <stop stop-color="#fff1b2"/><stop offset=".45" stop-color="#deb266"/>
+      <stop offset=".8" stop-color="#976832"/><stop offset="1" stop-color="#edc668"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="47.7" fill="none" stroke="url(#race-dial-brass)" stroke-width="3.8"/>
+  <circle cx="50" cy="50" r="45.6" fill="none" stroke="#183c60" stroke-width=".9"/>
+  <circle cx="50" cy="50" r="44.5" fill="#fff1c9" stroke="#b48742" stroke-width="1.2"/>
   <circle cx="50" cy="50" r="42" fill="none" stroke="#bd8b37" stroke-width="1"/>
   <path d="M19 17a45 45 0 0 1 62 0" fill="none" stroke="#fffdf5" stroke-opacity=".65" stroke-linecap="round"/>
   <g fill="#f7cc70" stroke="#725324" stroke-width=".65">
@@ -1605,7 +1649,7 @@ body{height:100dvh;overflow:hidden}
   <text class="speed-units" x="50" y="90">mph</text>
 </svg>
 </button>
-<button id="pauseButton" class="action race-utility" data-action="pause" data-narration="ui.pause" aria-label="Pause game" aria-keyshortcuts="Escape"><span class="utility-picture pause-bars" aria-hidden="true">Ⅱ</span><span class="control-label">Pause</span></button>
+<button id="pauseButton" class="action cab-button cab-button-red" data-action="pause" data-narration="ui.pause" aria-label="Pause game" aria-keyshortcuts="Escape"><span class="utility-picture pause-bars" aria-hidden="true">Ⅱ</span><span class="control-label">Pause</span></button>
                 
                 
 
@@ -1616,7 +1660,7 @@ body{height:100dvh;overflow:hidden}
     
     
 <section id="raceStartOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="racerPickerTitle" hidden>
- <div class="modal">
+ <div class="modal cab-panel">
   <span class="cab-fastener top left" aria-hidden="true"></span>
   <span class="cab-fastener top right" aria-hidden="true"></span>
   <span class="cab-fastener bottom left" aria-hidden="true"></span>
@@ -1680,9 +1724,9 @@ body{height:100dvh;overflow:hidden}
  <div class="picker-footer"><button id="startRaceButton" class="action cab-race" data-action="start-race" data-narration="race.menu" aria-label="Start a race" aria-keyshortcuts="Enter"><span class="cab-race-icon" aria-hidden="true"></span>Race!</button></div>
  <div id="raceUnavailable" role="status" hidden>The race cannot start in this browser. Please try another browser with WebGL enabled.</div></div>
 </section>
-    <section id="pauseOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden><div class="modal"><div class="modal-picture" aria-hidden="true"><svg class="pause-engine" viewBox="0 0 100 100"><use id="pausePortrait" href="#portrait-thomas" width="100" height="100"/></svg><span class="pause-rest">💤</span></div><h2 id="pauseTitle">Taking a rest</h2><p class="modal-intro">Ready when you are!</p><div class="modal-actions"><button class="action action-green" data-action="resume" data-narration="ui.resume" aria-label="Keep playing"><span class="resume-picture" aria-hidden="true">▶</span><span class="sr-only">Keep playing</span></button></div></div></section>
-    <section id="rewardOverlay" class="overlay festival-results" role="dialog" aria-modal="true" aria-labelledby="rewardTitle" hidden><div class="modal"><h2 id="rewardTitle">Well done!</h2><div class="reward-sticker" aria-hidden="true"><svg id="raceResultPicture" class="race-result-picture" viewBox="0 0 100 100"><use id="raceResultPortrait" href="#portrait-thomas" width="100" height="100"/></svg><svg id="festivalResultAward" viewBox="0 0 100 100"><use id="festivalResultAwardPicture" href="#festival-trophy" width="100" height="100"/></svg></div><p id="resultText" class="modal-intro">Thank you for your deliveries!</p><div id="rewardStars" class="reward-stars" aria-label="Three completion stars earned">⭐ ⭐ ⭐</div><div class="modal-actions"><button id="rewardReplay" class="action action-gold" data-action="rematch" data-narration="race.rematch" aria-label="Rematch"><span class="action-icon" aria-hidden="true">↻</span><span id="rewardReplayText" class="action-label">Rematch</span></button><button id="rewardAlternative" class="action action-blue" data-action="next-race" data-narration="race.choose" aria-label="Choose players"><span class="action-icon" aria-hidden="true">👥</span><span class="action-label">Choose players</span></button></div></div></section>
-    <section id="albumOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="albumTitle" hidden><div class="modal"><p class="eyebrow">Your collection</p><h2 id="albumTitle">My sticker album</h2><div id="albumItems" class="album-items"><div class="album-empty-picture" aria-hidden="true">🏅</div><p class="album-empty sr-only">Finish a race to earn your first sticker!</p></div><div class="modal-actions"><button class="action action-blue" data-action="close-album" data-narration="ui.close-album" aria-label="Close sticker album"><span class="action-icon" aria-hidden="true">✓</span><span class="sr-only">All done</span></button></div></div></section>
+    <section id="pauseOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden><div class="modal cab-panel"><div class="modal-picture" aria-hidden="true"><svg class="pause-engine" viewBox="0 0 100 100"><use id="pausePortrait" href="#portrait-thomas" width="100" height="100"/></svg><span class="pause-rest">💤</span></div><h2 id="pauseTitle">Taking a rest</h2><p class="modal-intro">Ready when you are!</p><div class="modal-actions"><button class="action cab-button cab-button-red" data-action="resume" data-narration="ui.resume" aria-label="Keep playing"><span class="resume-picture" aria-hidden="true">▶</span><span class="action-label">Keep playing</span></button></div></div></section>
+    <section id="rewardOverlay" class="overlay festival-results" role="dialog" aria-modal="true" aria-labelledby="rewardTitle" hidden><div class="modal cab-panel"><h2 id="rewardTitle">Well done!</h2><div class="reward-sticker" aria-hidden="true"><svg id="raceResultPicture" class="race-result-picture" viewBox="0 0 100 100"><use id="raceResultPortrait" href="#portrait-thomas" width="100" height="100"/></svg><svg id="festivalResultAward" viewBox="0 0 100 100"><use id="festivalResultAwardPicture" href="#festival-trophy" width="100" height="100"/></svg></div><p id="resultText" class="modal-intro">Thank you for your deliveries!</p><div id="rewardStars" class="reward-stars" aria-label="Three completion stars earned">⭐ ⭐ ⭐</div><div class="modal-actions"><button id="rewardReplay" class="action cab-button cab-button-red" data-action="rematch" data-narration="race.rematch" aria-label="Rematch"><span class="action-icon" aria-hidden="true">↻</span><span id="rewardReplayText" class="action-label">Rematch</span></button><button id="rewardAlternative" class="action cab-button cab-button-blue" data-action="next-race" data-narration="race.choose" aria-label="Choose players"><span class="action-icon" aria-hidden="true">👥</span><span class="action-label">Choose players</span></button></div></div></section>
+    <section id="albumOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="albumTitle" hidden><div class="modal cab-panel"><p class="eyebrow">Your collection</p><h2 id="albumTitle">My sticker album</h2><div id="albumItems" class="album-items"><div class="album-empty-picture" aria-hidden="true">🏅</div><p class="album-empty sr-only">Finish a race to earn your first sticker!</p></div><div class="modal-actions"><button class="action cab-button cab-button-blue" data-action="close-album" data-narration="ui.close-album" aria-label="Close sticker album"><span class="action-icon" aria-hidden="true">✓</span><span class="action-label">Close sticker album</span></button></div></div></section>
 </main>
 
 
