@@ -371,9 +371,9 @@ test('the cab lever selects Light from the keyboard, saves the mode, and repeats
  restored.click('#driveModeFull');
  assert.equal(node(restored,'driveModeFull').getAttribute('aria-pressed'),'true');
  restored.click('#driveModeLight');
- start(restored);go(restored);restored.frames(4.5,45);
+ start(restored);go(restored);restored.frames(6,60);
  assert.equal(restored.state().race.driveMode,'light');
- assert.equal(restored.state().race.player.velocity,1000);
+ assert.equal(restored.state().race.player.velocity,1250);
  assert.match(node(restored,'statusText').textContent,/^Use Up to speed up\./);
  complete(restored);
  restored.click('#skipCelebration');restored.click('#rewardReplay');

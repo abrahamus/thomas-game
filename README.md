@@ -42,7 +42,7 @@ Saved stars and player choices belong to the browser and site address. Existing 
 
 In Full, the player starts at 0%. On an open stretch, hold Up or the dial to reach the top speed of 150 miles per hour in six seconds. Speed increases by 25 miles per hour each second. A short tap advances one speed step. Every full stop resets the vehicle to 0%. It waits for Up after the job finishes.
 
-In Light, both racers start together and automatically accelerate toward 100 miles per hour. Complete each job to make your vehicle leave on its own. Up and the blue speedometer can still take the player to 150 miles per hour where the track allows it.
+In Light, both racers start together. On open track, the player automatically accelerates to 125 miles per hour and the computer to 150 miles per hour. Complete each job to make your vehicle leave on its own. Up and the blue speedometer can still take the player to 150 miles per hour where the track allows it.
 
 Racers brake automatically for stops and begin braking when they enter restricted terrain. In Full, press Up again after braking to raise your speed. In Light, your vehicle recovers to its automatic speed as the track allows. The computer leaves its stops and speeds up on its own in either mode.
 

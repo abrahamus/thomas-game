@@ -1756,7 +1756,7 @@ body{height:100dvh;overflow:hidden}
     const START_COUNTDOWN=4.6,LOOK_AHEAD=courseDistance(10500),STEP=1/120,EPS=1e-8;
     const LANE_OFFSETS=Object.freeze([0]),ROAD_LANE=-15,ROAD_LANE_SPACING=0;
     const COACH_OFFSET=900;
-    const SPEED_STEP_PERCENT=25,MAX_SPEED_PERCENT=150;
+    const SPEED_STEP_PERCENT=25,MAX_SPEED_PERCENT=150,LIGHT_AUTO_SPEED_PERCENT=125;
     const SPEED_UNIT=CRUISE_SPEED/100,TOP_SPEED=SPEED_UNIT*MAX_SPEED_PERCENT;
     const NEW_JOBS=Object.freeze(['repairs','rocks','coal','level-crossing']);
     const UNIT_JOBS=Object.freeze({repairs:{prefix:'sleeper',count:3,seconds:1.5},rocks:{prefix:'rock',count:2,seconds:2},coal:{prefix:'coal',count:3,seconds:1}});
@@ -2109,7 +2109,7 @@ body{height:100dvh;overflow:hidden}
         return limit;
     }
     function playerSpeedPercent(race){
-        const automatic=race.driveMode==='light'?CRUISE_SPEED/SPEED_UNIT:0;
+        const automatic=race.driveMode==='light'?LIGHT_AUTO_SPEED_PERCENT:0;
         return Math.max(race.player.speedPercent,automatic);
     }
     function nextAllowedSpeedPercent(race,v){
@@ -2134,8 +2134,7 @@ body{height:100dvh;overflow:hidden}
         if(finishedBefore&&v.distance>=c.length+2500){v.velocity=v.targetVelocity=0;return;}
         if(v.service){v.velocity=v.targetVelocity=0;updateService(race,v,dt);return;}
         const before=v.distance,beforeVelocity=v.velocity;
-        const rivalSpeed=race.driveMode==='light'?CRUISE_SPEED:TOP_SPEED;
-        const requested=v===race.rival?rivalSpeed:Math.min(TOP_SPEED,
+        const requested=v===race.rival?TOP_SPEED:Math.min(TOP_SPEED,
             Math.max(playerSpeedPercent(race)*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
         let target=Math.min(requested,routeSpeedLimit(race,v),v.entryBrakeTarget??Infinity);
         const m=motion(v,target,dt);
