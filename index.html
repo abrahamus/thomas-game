@@ -971,6 +971,7 @@ body{height:100dvh;overflow:hidden}
 #footerDashboard.is-race .actions .whistle{--control-hint:#93d5f9}
 #footerDashboard.is-race .actions .whistle .control-picture{width:20px;height:23px}
 #footerDashboard .control-label{font:700 12px/1 "Trebuchet MS",Arial,sans-serif;text-align:center;white-space:nowrap}
+#footerDashboard .race-primary-actions{display:contents}
 #footerDashboard .control-spacer{display:block;flex:1;min-width:0}
 /* Action faces and edges use the same color family on every screen. */
 .cab-button-blue {
@@ -1078,6 +1079,23 @@ body{height:100dvh;overflow:hidden}
  #footerDashboard .utility-picture{width:26px;height:28px;font-size:34px}
  #footerDashboard .pause-bars{font-size:29px}
  #footerDashboard #skipCelebration{bottom:calc(var(--primary-control-height) + 16px)}
+}
+/* Center the desktop dial and wrap the left buttons when their column is narrow. */
+@media(hover:hover) and (pointer:fine){
+ #playSurface:not(.is-iphone) #footerDashboard.is-race:not(.festival-footer) .actions {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) max-content minmax(0,1fr);
+ }
+ #playSurface:not(.is-iphone) #footerDashboard.is-race:not(.festival-footer) .race-primary-actions {
+  grid-area:1 / 1;
+  display:flex;
+  flex-wrap:wrap;
+  gap:inherit;
+  align-items:inherit;
+ }
+ #playSurface:not(.is-iphone) #footerDashboard.is-race:not(.festival-footer) .control-spacer{display:none}
+ #playSurface:not(.is-iphone) #footerDashboard.is-race:not(.festival-footer) #action-accelerate{grid-area:1 / 2}
+ #playSurface:not(.is-iphone) #footerDashboard.is-race:not(.festival-footer) #pauseButton{grid-area:1 / 3;justify-self:end}
 }
 /* Equal side columns center the iPhone dial even when a job button is hidden. */
 #playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) .actions {
@@ -1613,8 +1631,10 @@ body{height:100dvh;overflow:hidden}
                 
                 
 
+<div class="race-primary-actions">
 <button id="action-whistle" class="action whistle cab-button cab-button-blue" data-action="whistle" data-narration="ui.whistle" aria-label="Blow the whistle." aria-keyshortcuts="Space" hidden><svg class="control-picture" viewBox="0 0 120 100" aria-hidden="true"><use href="#rule-whistle" width="120" height="100"/></svg><span id="signalLabel" class="control-label">Whistle</span></button>
 <button id="action-race-help" class="action action-race-help cab-button cab-button-yellow" data-action="race-help" data-narration="race.service.wash" aria-label="Help at this stop" aria-keyshortcuts="Enter" hidden><svg class="control-picture" viewBox="0 0 120 100" aria-hidden="true"><use id="raceHelpPicture" href="#challenge-wash" width="120" height="100"/></svg><span id="raceHelpLabel" class="control-label">Help</span></button>
+</div>
 <span class="control-spacer" aria-hidden="true"></span>
 <button id="action-accelerate" type="button" class="action race-speed" data-action="accelerate" aria-label="Speed up. Current speed 0 miles per hour." aria-keyshortcuts="ArrowUp" hidden disabled>
 <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -2433,9 +2453,23 @@ body{height:100dvh;overflow:hidden}
             if (buses) {ramp(buses.running.gain, value ? 0.30 : levels.running, 0.16);ramp(buses.festival.gain,value ? .16 : levels.festival,.10);}
             try { onSpeaking(value); } catch (_) { /* UI feedback is optional. */ }
         }
-        function unlock() {
+        function unlock({ restartContext = false } = {}) {
             // Construct and resume synchronously inside the user's key/click gesture.
             unlocked = true;
+            if (restartContext && context) {
+                const previous = context;
+                context = null;
+                stop();
+                buses = null;
+                noise = null;
+                decoded.clear();
+                running.buffers = null;
+                running.motorBuffer = null;
+                running.failed = false;
+                try {
+                    if (previous.state !== 'closed') previous.close().catch(() => {});
+                } catch (_) { /* The new context can still be started. */ }
+            }
             if (!context && !silenced()) {
                 const AudioContextClass = browser.AudioContext || browser.webkitAudioContext || root.AudioContext;
                 if (AudioContextClass) {
@@ -2454,7 +2488,7 @@ body{height:100dvh;overflow:hidden}
                     } catch (_) { context = null; buses = null; }
                 }
             }
-            if (context && context.state === 'suspended' && !silenced()) {
+            if (context && !silenced() && (context.state === 'suspended' || restartContext && context.state === 'interrupted')) {
                 try { const result = context.resume(); if (result && result.catch) result.catch(() => {}); } catch (_) { /* Speech remains available. */ }
             }
             return context;
@@ -59656,7 +59690,11 @@ state.isMuted = false;
 state.musicEnabled = false;
 const $ = id => document.getElementById(id);
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const isIPhone = /\biPhone\b/.test(window.navigator?.userAgent || '');
+const browser = window.navigator;
+const userAgent = browser?.userAgent || '';
+const isIPhone = /\biPhone\b/.test(userAgent);
+const isIOS = isIPhone || /\b(?:iPad|iPod)\b/.test(userAgent) ||
+    browser?.platform === 'MacIntel' && browser.maxTouchPoints > 1;
 let racerTouchWasLastPointer=false;
 const ui = {
     audioUnlocked:false,windowActive:true,task:'',taskKey:'',emoji:'🚂',lastGeneration:-1,
@@ -59692,7 +59730,7 @@ function svgNode(tag, attrs, parent) {
 }
 function focusStage() { $('gameStage').focus({preventScroll: true}); }
 function active() { return state.screen === 'play' && !state.paused && !ui.albumOpen; }
-function unlockAudio() { ui.audioUnlocked=true;ui.windowActive=!document.hidden;audio.unlock(); }
+function unlockAudio(options) { ui.audioUnlocked=true;ui.windowActive=!document.hidden;audio.unlock(options); }
 if(!globalThis.ThomasUiNarration){
     try{globalThis.ThomasUiNarration=JSON.parse($('ui-narration-data').textContent);}catch(_){globalThis.ThomasUiNarration={};}
 }
@@ -59976,7 +60014,9 @@ function pause() {
 }
 function dispatchAction(action,payload) {
     if(ui.albumOpen && !['close-album','hear-sticker','mute','music','home','repeat'].includes(action))return false;
-    unlockAudio();
+    // On iOS even a context that reports "running" can stop delivering sound.
+    const restartAudio=action==='resume'&&isIOS&&!document.hidden;
+    if(!restartAudio)unlockAudio();
     if(action==='repeat'){
         // Repeat is an explicit request for the current task, even if older,
         // higher-priority guidance is still finishing.
@@ -60027,7 +60067,12 @@ function dispatchAction(action,payload) {
     if(['home','next-race','start-race','rematch'].includes(action)){
         ui.albumOpen=false;ui.openPicker=null;ui.menuIndex=0;ui.raceUnavailable=false;
     }
-    if(action==='resume'){ui.lastTimestamp=null;audio.unlock();say(ui.task,ui.taskKey);}
+    if(action==='resume'){
+        ui.lastTimestamp=null;
+        if(restartAudio)unlockAudio({restartContext:true});
+        else audio.unlock();
+        say(ui.task,ui.taskKey);
+    }
     if(action==='whistle'||signalsAnimals||requestsClearance){playPeepPeepWhistle();ui.whistle=.8;}
     else if(['race-help','race-clean-spot'].includes(action))playPopSound(700);
     render();

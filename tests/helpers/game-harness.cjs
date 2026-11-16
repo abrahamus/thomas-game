@@ -167,7 +167,7 @@ function createDocument() {
     return doc;
 }
 
-function setup(saved, { seed = 17, unavailableStorage = false, raceUnavailable = false, userAgent = '' } = {}) {
+function setup(saved, { seed = 17, unavailableStorage = false, raceUnavailable = false, userAgent = '', AudioContext } = {}) {
     const document = createDocument();
     const windowListeners = new Map();
     const values = new Map();
@@ -177,7 +177,7 @@ function setup(saved, { seed = 17, unavailableStorage = false, raceUnavailable =
         setItem: (key, value) => { if (unavailableStorage) throw new Error('Storage unavailable'); values.set(key, value); }
     };
     const spoken = [], speechEvents = [];
-    const window = { localStorage: storage, navigator: { userAgent },
+    const window = { localStorage: storage, navigator: { userAgent }, AudioContext,
         addEventListener(type, listener) { windowListeners.set(type, listener); },
         speechSynthesis: { cancel() { speechEvents.push('cancel'); }, getVoices: () => [], speak: utterance => {
             speechEvents.push('speak');
@@ -191,6 +191,7 @@ function setup(saved, { seed = 17, unavailableStorage = false, raceUnavailable =
         return seed / 4294967296;
     };
     const context = vm.createContext({ document, window, Math: randomMath, ThomasNarration: narration, ThomasUiNarration: uiNarration,
+        atob: data => Buffer.from(data, 'base64').toString('binary'),
         requestAnimationFrame() {},
         SpeechSynthesisUtterance: class { constructor(text) { this.text = text; } },
         MouseEvent: class { constructor(type, options) { this.type = type; Object.assign(this, options); } }

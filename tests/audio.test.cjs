@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { setup: setupGame } = require('./helpers/game-harness.cjs');
 
 const html = fs.readFileSync(process.env.THOMAS_HTML_SOURCE || path.join(__dirname, '..', 'thomas_the_tank_engine_island_of_sodor_adventure.html'), 'utf8');
 function inline(id) {
@@ -29,7 +30,7 @@ class AudioNode {
     }
     connect(target) { this.connections.push(target); }
     disconnect() { this.disconnected = true; }
-    start(at = 0) { this.started = true; this.startTime = at; }
+    start(at = 0, offset = 0) { this.started = true; this.startTime = at; this.offset = offset; }
     stop(at) { this.stopped++; this.stopTimes.push(at); }
     finish() { if (this.onended) this.onended(); }
 }
@@ -54,6 +55,72 @@ class FakeAudioContext {
     resolve(index = 0) { this.decoding[index].resolve({ duration: 2 }); }
     reject(index = 0) { this.decoding[index].reject(new Error('bad audio')); }
 }
+
+class GameAudioContext extends FakeAudioContext {
+    decodeAudioData() { return Promise.resolve({ duration: 64 }); }
+    close() { this.state = 'closed'; return Promise.resolve(); }
+}
+
+const iPhoneAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS like Mac OS X)';
+const resumeButton = '#pauseOverlay [data-action="resume"]';
+const finishAudioWork = () => new Promise(resolve => setImmediate(resolve));
+
+for (const contextState of ['interrupted', 'running']) {
+    test(`iPhone Resume restores music and effects when sound stops and the context reports ${contextState}`, async () => {
+        const game = setupGame(undefined, { userAgent: iPhoneAgent, AudioContext: GameAudioContext });
+        game.click('#startRaceButton');
+        await finishAudioWork();
+        const oldContext = game.evaluate('audio.context');
+        const oldMusic = oldContext.nodes.find(node => node.loop);
+        assert.ok(oldMusic);
+        oldContext.currentTime += 12.5;
+        game.click('#pauseButton');
+        oldContext.state = contextState;
+        assert.ok(oldMusic.stopped);
+        assert.equal(game.evaluate('music.playing'), false);
+
+        game.click(resumeButton);
+        assert.equal(game.state().paused, false);
+        const newContext = game.evaluate('audio.context');
+        assert.notEqual(newContext, oldContext);
+        assert.equal(newContext.state, 'running');
+        assert.equal(oldContext.state, 'closed');
+        await finishAudioWork();
+        assert.equal(newContext.nodes.find(node => node.loop)?.offset, 12.5);
+        game.click('#action-whistle');
+        assert.ok(newContext.nodes.some(node => node.kind === 'oscillator' && node.started));
+    });
+}
+
+test('desktop Resume keeps the existing audio context and continues the same music loop', async () => {
+    const game = setupGame(undefined, { AudioContext: GameAudioContext });
+    game.click('#startRaceButton');
+    await finishAudioWork();
+    const context = game.evaluate('audio.context');
+    context.currentTime += 12.5;
+    game.click('#pauseButton');
+    game.click(resumeButton);
+    await finishAudioWork();
+    assert.equal(game.evaluate('audio.context'), context);
+    assert.deepEqual(context.nodes.filter(node => node.loop).map(node => node.offset), [0, 12.5]);
+});
+
+test('iPhone Resume stays silent when muted and the next unmute starts sound again', async () => {
+    const game = setupGame(undefined, { userAgent: iPhoneAgent, AudioContext: GameAudioContext });
+    game.click('#startRaceButton');
+    const oldContext = game.evaluate('audio.context');
+    game.click('#pauseButton');
+    game.evaluate("dispatchAction('mute')");
+    game.click(resumeButton);
+    assert.equal(game.state().isMuted, true);
+    assert.equal(game.evaluate('audio.context'), null);
+    assert.equal(oldContext.state, 'closed');
+    assert.equal(game.evaluate('music.playing'), false);
+
+    game.evaluate("dispatchAction('mute')");
+    await finishAudioWork();
+    assert.equal(game.evaluate('music.playing'), true);
+});
 
 function setup({ useContext = true, useSpeech = true, voices = [{ name: 'Daniel', lang: 'en-GB' }, { name: 'Samantha', lang: 'en-US' }, { name: 'Serena', lang: 'en-GB' }], narration = {
     first: { text: 'Hello Thomas.', data: Buffer.from('first WAV').toString('base64') },

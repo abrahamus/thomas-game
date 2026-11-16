@@ -6,7 +6,11 @@ state.isMuted = false;
 state.musicEnabled = false;
 const $ = id => document.getElementById(id);
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const isIPhone = /\biPhone\b/.test(window.navigator?.userAgent || '');
+const browser = window.navigator;
+const userAgent = browser?.userAgent || '';
+const isIPhone = /\biPhone\b/.test(userAgent);
+const isIOS = isIPhone || /\b(?:iPad|iPod)\b/.test(userAgent) ||
+    browser?.platform === 'MacIntel' && browser.maxTouchPoints > 1;
 let racerTouchWasLastPointer=false;
 const ui = {
     audioUnlocked:false,windowActive:true,task:'',taskKey:'',emoji:'🚂',lastGeneration:-1,
@@ -42,7 +46,7 @@ function svgNode(tag, attrs, parent) {
 }
 function focusStage() { $('gameStage').focus({preventScroll: true}); }
 function active() { return state.screen === 'play' && !state.paused && !ui.albumOpen; }
-function unlockAudio() { ui.audioUnlocked=true;ui.windowActive=!document.hidden;audio.unlock(); }
+function unlockAudio(options) { ui.audioUnlocked=true;ui.windowActive=!document.hidden;audio.unlock(options); }
 if(!globalThis.ThomasUiNarration){
     try{globalThis.ThomasUiNarration=JSON.parse($('ui-narration-data').textContent);}catch(_){globalThis.ThomasUiNarration={};}
 }
@@ -326,7 +330,9 @@ function pause() {
 }
 function dispatchAction(action,payload) {
     if(ui.albumOpen && !['close-album','hear-sticker','mute','music','home','repeat'].includes(action))return false;
-    unlockAudio();
+    // On iOS even a context that reports "running" can stop delivering sound.
+    const restartAudio=action==='resume'&&isIOS&&!document.hidden;
+    if(!restartAudio)unlockAudio();
     if(action==='repeat'){
         // Repeat is an explicit request for the current task, even if older,
         // higher-priority guidance is still finishing.
@@ -377,7 +383,12 @@ function dispatchAction(action,payload) {
     if(['home','next-race','start-race','rematch'].includes(action)){
         ui.albumOpen=false;ui.openPicker=null;ui.menuIndex=0;ui.raceUnavailable=false;
     }
-    if(action==='resume'){ui.lastTimestamp=null;audio.unlock();say(ui.task,ui.taskKey);}
+    if(action==='resume'){
+        ui.lastTimestamp=null;
+        if(restartAudio)unlockAudio({restartContext:true});
+        else audio.unlock();
+        say(ui.task,ui.taskKey);
+    }
     if(action==='whistle'||signalsAnimals||requestsClearance){playPeepPeepWhistle();ui.whistle=.8;}
     else if(['race-help','race-clean-spot'].includes(action))playPopSound(700);
     render();
