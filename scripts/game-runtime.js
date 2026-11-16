@@ -6,6 +6,8 @@ state.isMuted = false;
 state.musicEnabled = false;
 const $ = id => document.getElementById(id);
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const isIPhone = /\biPhone\b/.test(window.navigator?.userAgent || '');
+let racerTouchWasLastPointer=false;
 const ui = {
     audioUnlocked:false,windowActive:true,task:'',taskKey:'',emoji:'🚂',lastGeneration:-1,
     festival:null,finishWelcomed:false,menuIndex:0,openPicker:null,albumOpen:false,speaking:false,time:0,whistle:0,lastTimestamp:null,
@@ -391,6 +393,7 @@ function releasePedal(){
     ui.pedalPointer=null;
 }
 document.addEventListener('pointerdown',event=>{
+    if(event.pointerType==='mouse')racerTouchWasLastPointer=false;
     if(event.isPrimary===false||ui.pedalPointer!==null)return;
     ui.ignorePedalClick=false;
     const pedal=$('action-accelerate');
@@ -410,6 +413,8 @@ document.addEventListener('keyup',event=>{
 document.addEventListener('click',event=>{
     if(ui.openPicker&&!$(ui.openPicker+'PickerPanel').contains(event.target))setPicker(null,true);
     const node=event.target.closest('[data-action]');
+    // iPhone browsers may report the follow-up click as a mouse event.
+    if(racerTouchWasLastPointer&&event.detail>0&&node?.closest('.racer-grid'))return;
     if(node?.dataset.action==='accelerate'&&event.detail>0&&ui.ignorePedalClick){
         ui.ignorePedalClick=false;return;
     }
@@ -417,6 +422,43 @@ document.addEventListener('click',event=>{
     event.stopPropagation();dispatchAction(node.dataset.action,node.dataset.value);
     if(event.detail>0 && active() && !menuButtons().length)focusStage();
 });
+if(isIPhone){
+    $('playSurface').classList.add('is-iphone');
+    const picker=$('raceStartOverlay');
+    const choiceAt=target=>target?.closest('.racer-grid .racer-choice');
+    const available=button=>button&&!button.disabled&&!button.closest('[hidden],[inert]');
+    const tapTolerance=8;
+    let tap=null;
+    const clearTap=()=>{tap=null;};
+    const moved=(touch,start)=>Math.hypot(touch.clientX-start.x,touch.clientY-start.y)>tapTolerance;
+    document.addEventListener('touchstart',event=>{
+        // A second finger can land outside the picker.
+        if(event.touches.length!==1){clearTap();return;}
+        racerTouchWasLastPointer=!picker.hidden;
+        const button=choiceAt(event.target);
+        if(!available(button)){clearTap();return;}
+        const touch=event.touches[0];
+        tap={button,id:touch.identifier,x:touch.clientX,y:touch.clientY};
+    },{capture:true,passive:true});
+    picker.addEventListener('touchmove',event=>{
+        if(!tap)return;
+        const touch=event.touches[0];
+        if(event.touches.length!==1||touch.identifier!==tap.id||moved(touch,tap))clearTap();
+    },{passive:true});
+    picker.addEventListener('touchcancel',clearTap);
+    picker.addEventListener('scroll',clearTap,{capture:true,passive:true});
+    picker.addEventListener('touchend',event=>{
+        const start=tap;
+        clearTap();
+        if(!start||event.touches.length||!event.cancelable||!available(start.button))return;
+        const touch=event.changedTouches[0];
+        if(touch.identifier!==start.id||moved(touch,start))return;
+        if(choiceAt(document.elementFromPoint(touch.clientX,touch.clientY))!==start.button)return;
+        // Use the same activation as a keyboard click and suppress the follow-up click.
+        event.preventDefault();
+        start.button.click();
+    },{passive:false});
+}
 document.addEventListener('keydown',event=>{
     if(event.repeat && !event.ctrlKey && !event.altKey && !event.metaKey &&
         !event.target.closest('input,textarea,select,[contenteditable]') &&
