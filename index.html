@@ -1079,18 +1079,18 @@ body{height:100dvh;overflow:hidden}
  #footerDashboard .pause-bars{font-size:29px}
  #footerDashboard #skipCelebration{bottom:calc(var(--primary-control-height) + 16px)}
 }
-/* Keep the iPhone controls in fixed columns even when a job button is hidden. */
+/* Equal side columns center the iPhone dial even when a job button is hidden. */
 #playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) .actions {
  display:grid;
- grid-template-columns:max-content minmax(0,1fr) max-content max-content;
+ grid-template-columns:minmax(0,1fr) max-content minmax(0,1fr);
  grid-template-rows:repeat(2,minmax(var(--control-height),1fr));
  align-items:center;
 }
 #playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) .control-spacer{display:none}
 #playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) #action-whistle{grid-area:1 / 1}
 #playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) #action-race-help{grid-area:2 / 1}
-#playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) #action-accelerate{grid-area:1 / 3 / 3;align-self:center}
-#playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) #pauseButton{grid-area:1 / 4 / 3}
+#playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) #action-accelerate{grid-area:1 / 2 / 3;align-self:center}
+#playSurface.is-iphone #footerDashboard.is-race:not(.festival-footer) #pauseButton{grid-area:1 / 3 / 3;justify-self:end}
 </style>
 </head>
 <body>
