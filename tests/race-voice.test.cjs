@@ -37,7 +37,7 @@ function racing(ui, { finishIntro = true } = {}) {
 }
 
 test('Ana countdown fits the lights and introduces railway jobs', () => {
-    const ui = heldVoice(); start(ui);
+    const ui = heldVoice(); ui.click('#driveModeFull'); start(ui);
     const clips = JSON.parse(script('narration-data'));
     const interval = ui.evaluate('ThomasRaceCore.START_COUNTDOWN/2');
     assert.ok(interval >= clips['race.ready'].duration);

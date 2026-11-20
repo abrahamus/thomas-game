@@ -22,11 +22,11 @@
     function createGame(storage,random=Math.random){
         if(storage===undefined){try{storage=globalThis.localStorage;}catch(_){storage=null;}}
         const validId=id=>!!ThomasRaceCore.character(id),validChoice=id=>id==='random'||validId(id);
-        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,driveMode:'full',selections:{playerId:'thomas',opponentId:'random'}};
+        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,driveMode:'light',selections:{playerId:'thomas',opponentId:'random'}};
         try{
             const saved=JSON.parse(storage?.getItem(STORAGE_KEY)||'null');
             if(saved?.version===1&&Number.isSafeInteger(saved.stars)&&saved.stars>=0&&Array.isArray(saved.stickers)&&saved.stickers.every(id=>STICKER_IDS.includes(id))){
-                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],driveMode:saved.driveMode==='light'?'light':'full',
+                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],driveMode:saved.driveMode==='full'?'full':progress.driveMode,
                     completedMissions:Array.isArray(saved.completedMissions)?[...new Set(saved.completedMissions.filter(id=>LEGACY_STICKERS.some(s=>s.id===id)))]:[],
                     lastRace:saved.lastRace&&['country','harbour','mountain'].includes(saved.lastRace.courseId)&&validId(saved.lastRace.opponentId)?
                         {courseId:saved.lastRace.courseId,playerId:validId(saved.lastRace.playerId)?saved.lastRace.playerId:'thomas',opponentId:saved.lastRace.opponentId,...(['passengers','cargo'].includes(saved.lastRace.deliveryTheme)?{deliveryTheme:saved.lastRace.deliveryTheme}:{})}:null};

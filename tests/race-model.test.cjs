@@ -194,7 +194,7 @@ test('Once-onlyfinishrecordsresultandfreezeswithoutduplicatingcompletion',()=>{
     const r=drive(R,{});const before=json(r),finish=r.player.finishTime;assert.equal(r.phase,'complete');assert.equal(R.step(r,1000),false);assert.deepEqual(json(r),before);assert.equal(r.player.finishTime,finish);assert.equal(r.events.filter(e=>e.type==='complete').length,1);
 });
 
-test('Light racers pull away together and automatically accelerate to 125 and 150 miles per hour',()=>{
+test('Light racers pull away together and both automatically accelerate to 125 miles per hour',()=>{
     const r=R.createRace({driveMode:'light'});
     R.step(r,R.START_COUNTDOWN-.1);
     assert.equal(r.player.distance,0);
@@ -208,7 +208,8 @@ test('Light racers pull away together and automatically accelerate to 125 and 15
     assert.equal(r.player.velocity,r.rival.velocity);
     R.step(r,6);
     assert.equal(r.player.velocity,1250);
-    assert.equal(r.rival.velocity,1500);
+    assert.equal(r.rival.velocity,1250);
+    assert.equal(r.player.distance,r.rival.distance);
 });
 
 test('Light permits manual speed up to 150 and respects the tunnel through rear clearance',()=>{
@@ -218,6 +219,7 @@ test('Light permits manual speed up to 150 and respects the tunnel through rear 
     assert.equal(R.adjustSpeed(r,1),true);
     R.step(r,1.05);
     assert.equal(v.velocity,1500);
+    assert.equal(r.rival.velocity,1250);
     for(const job of v.serviceStates)job.completed=true;
     const tunnel=R.getTravelSections(r).find(s=>s.type==='tunnel');
     v.distance=tunnel.start-1;

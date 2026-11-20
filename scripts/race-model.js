@@ -388,7 +388,8 @@
         if(finishedBefore&&v.distance>=c.length+2500){v.velocity=v.targetVelocity=0;return;}
         if(v.service){v.velocity=v.targetVelocity=0;updateService(race,v,dt);return;}
         const before=v.distance,beforeVelocity=v.velocity;
-        const requested=v===race.rival?TOP_SPEED:Math.min(TOP_SPEED,
+        const rivalSpeed=race.driveMode==='light'?LIGHT_AUTO_SPEED_PERCENT*SPEED_UNIT:TOP_SPEED;
+        const requested=v===race.rival?rivalSpeed:Math.min(TOP_SPEED,
             Math.max(playerSpeedPercent(race)*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
         let target=Math.min(requested,routeSpeedLimit(race,v),v.entryBrakeTarget??Infinity);
         const m=motion(v,target,dt);

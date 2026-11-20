@@ -1711,7 +1711,7 @@ body{height:100dvh;overflow:hidden}
  <span class="picker-selected-label"><strong id="opponentChoiceName">Random</strong><small>Change</small></span><span class="picker-arrow" aria-hidden="true"></span></button>
  <div id="opponentPickerMenu" class="racer-dropdown" hidden><div id="opponentChoices" class="racer-grid" role="group" aria-label="Computer character choices" aria-describedby="opponentScrollHint"></div><p id="opponentScrollHint" class="picker-scroll-hint">Scroll for more friends ↕</p></div>
  </section></div>
- <div id="driveModeControl" class="cab-mode" data-selected="full" role="group" aria-label="Driving mode">
+ <div id="driveModeControl" class="cab-mode" data-selected="light" role="group" aria-label="Driving mode">
     <svg class="cab-mechanism" viewBox="0 0 316 86" aria-hidden="true">
       <defs>
         <linearGradient id="cab-edge" x2="0" y2="1">
@@ -1750,8 +1750,8 @@ body{height:100dvh;overflow:hidden}
       </g>
       <circle cx="158" cy="65" r="3.1" fill="#ffe5a3" stroke="#8a612a" stroke-width="1"/>
     </svg>
-    <button class="cab-position" type="button" id="driveModeLight" data-action="select-drive-mode" data-value="light" aria-pressed="false"><span>Light</span></button>
-    <button class="cab-position" type="button" id="driveModeFull" data-action="select-drive-mode" data-value="full" aria-pressed="true"><span>Full</span></button>
+    <button class="cab-position" type="button" id="driveModeLight" data-action="select-drive-mode" data-value="light" aria-pressed="true"><span>Light</span></button>
+    <button class="cab-position" type="button" id="driveModeFull" data-action="select-drive-mode" data-value="full" aria-pressed="false"><span>Full</span></button>
   </div>
  <div class="picker-footer"><button id="startRaceButton" class="action cab-race" data-action="start-race" data-narration="race.menu" aria-label="Start a race" aria-keyshortcuts="Enter"><span class="cab-race-icon" aria-hidden="true"></span>Race!</button></div>
  <div id="raceUnavailable" role="status" hidden>The race cannot start in this browser. Please try another browser with WebGL enabled.</div></div>
@@ -2166,7 +2166,8 @@ body{height:100dvh;overflow:hidden}
         if(finishedBefore&&v.distance>=c.length+2500){v.velocity=v.targetVelocity=0;return;}
         if(v.service){v.velocity=v.targetVelocity=0;updateService(race,v,dt);return;}
         const before=v.distance,beforeVelocity=v.velocity;
-        const requested=v===race.rival?TOP_SPEED:Math.min(TOP_SPEED,
+        const rivalSpeed=race.driveMode==='light'?LIGHT_AUTO_SPEED_PERCENT*SPEED_UNIT:TOP_SPEED;
+        const requested=v===race.rival?rivalSpeed:Math.min(TOP_SPEED,
             Math.max(playerSpeedPercent(race)*SPEED_UNIT,accelerating?v.velocity+ACCELERATION*dt:0));
         let target=Math.min(requested,routeSpeedLimit(race,v),v.entryBrakeTarget??Infinity);
         const m=motion(v,target,dt);
@@ -2343,11 +2344,11 @@ body{height:100dvh;overflow:hidden}
     function createGame(storage,random=Math.random){
         if(storage===undefined){try{storage=globalThis.localStorage;}catch(_){storage=null;}}
         const validId=id=>!!ThomasRaceCore.character(id),validChoice=id=>id==='random'||validId(id);
-        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,driveMode:'full',selections:{playerId:'thomas',opponentId:'random'}};
+        let progress={stars:0,stickers:[],completedMissions:[],lastRace:null,driveMode:'light',selections:{playerId:'thomas',opponentId:'random'}};
         try{
             const saved=JSON.parse(storage?.getItem(STORAGE_KEY)||'null');
             if(saved?.version===1&&Number.isSafeInteger(saved.stars)&&saved.stars>=0&&Array.isArray(saved.stickers)&&saved.stickers.every(id=>STICKER_IDS.includes(id))){
-                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],driveMode:saved.driveMode==='light'?'light':'full',
+                progress={...progress,stars:saved.stars,stickers:[...new Set(saved.stickers)],driveMode:saved.driveMode==='full'?'full':progress.driveMode,
                     completedMissions:Array.isArray(saved.completedMissions)?[...new Set(saved.completedMissions.filter(id=>LEGACY_STICKERS.some(s=>s.id===id)))]:[],
                     lastRace:saved.lastRace&&['country','harbour','mountain'].includes(saved.lastRace.courseId)&&validId(saved.lastRace.opponentId)?
                         {courseId:saved.lastRace.courseId,playerId:validId(saved.lastRace.playerId)?saved.lastRace.playerId:'thomas',opponentId:saved.lastRace.opponentId,...(['passengers','cargo'].includes(saved.lastRace.deliveryTheme)?{deliveryTheme:saved.lastRace.deliveryTheme}:{})}:null};
