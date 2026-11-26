@@ -59169,7 +59169,9 @@ exports.createCanvasElement = createCanvasElement;
       let ranges=[[start,end]];for(const spec of services.filter(s=>s.type==='drawbridge')){const a=spec.at+14/core.WORLD_SCALE,z=spec.at+23/core.WORLD_SCALE;ranges=ranges.flatMap(([l,r])=>r<=a||l>=z?[[l,r]]:[[l,Math.min(r,a)],[Math.max(l,z),r]].filter(([l,r])=>r>l));}
       for(const[a,z]of ranges)trackPath(core,courseId,world,d=>core.sampleRoute(courseId,d,offset),a,z,offset,road,corridor);
     });
-    return makeLakeside(core,courseId,world,playerId,opponent);
+    const lakeside=makeLakeside(core,courseId,world,playerId,opponent);
+    lakeside.groundHeight=(d,lane)=>core.sampleTerrainHeight(courseId,d,lane)+terrainOffset(d,lane);
+    return lakeside;
   }
   function tree(world,p,scale=1,kind=0) {
     const g=new T.Group();g.name='tree';g.position.set(p.x,p.y,p.z);g.scale.setScalar(scale);world.add(g);
@@ -59334,6 +59336,136 @@ exports.createCanvasElement = createCanvasElement;
       g.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
     }
   }
+  const reduceSpeedText='REDUCE SPEED';
+  const slowdownLetters={
+    R:'11110 10001 10001 11110 10100 10010 10001',
+    E:'11111 10000 10000 11110 10000 10000 11111',
+    D:'11110 10001 10001 10001 10001 10001 11110',
+    U:'10001 10001 10001 10001 10001 10001 01110',
+    C:'01111 10000 10000 10000 10000 10000 01111',
+    S:'01111 10000 10000 01110 00001 00001 11110',
+    P:'11110 10001 10001 11110 10000 10000 10000'
+  };
+  function reduceSpeedLetterGeometry(){
+    return geometry('reduce-speed-lettering',()=>{
+      const positions=[],width=.063,height=.10;
+      [...reduceSpeedText].forEach((letter,index)=>{
+        if(letter===' ')return;
+        slowdownLetters[letter].split(' ').forEach((row,y)=>{
+          for(let x=0;x<row.length;x++){
+            if(row[x]!=='1')continue;
+            const a=(index*6+x-(reduceSpeedText.length*6-1)/2)*width,b=a+width;
+            const top=(3.5-y)*height,bottom=top-height;
+            positions.push(a,bottom,0,b,bottom,0,b,top,0,a,bottom,0,b,top,0,a,top,0);
+          }
+        });
+      });
+      const result=new T.BufferGeometry();
+      result.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+      result.computeVertexNormals();
+      return result;
+    });
+  }
+  function slowdownPanel(parent,key,color,x,y,z,makeShape){
+    const panel=new T.Mesh(geometry(key,()=>new T.ShapeGeometry(makeShape())),new T.MeshBasicMaterial({color}));
+    panel.name=key;
+    return add(parent,panel,x,y,z);
+  }
+  function warningTriangle(width,height){
+    const shape=new T.Shape();
+    shape.moveTo(-width/2,-height/3);
+    shape.lineTo(width/2,-height/3);
+    shape.lineTo(0,height*2/3);
+    shape.closePath();
+    return shape;
+  }
+  function warningSymbol(parent,type,road){
+    const symbol=new T.Group();
+    symbol.name='slowdown-hazard-symbol';
+    add(parent,symbol,0,3.92,.05);
+    const black=0x161819;
+    const stroke=(x1,y1,x2,y2,width=.14)=>{
+      const line=plainBox(symbol,Math.hypot(x2-x1,y2-y1)+width,width,.035,black,(x1+x2)/2,(y1+y2)/2,0);
+      line.rotation.z=Math.atan2(y2-y1,x2-x1);
+    };
+    if(type==='bend'||type==='tight-bend'){
+      if(type==='tight-bend')symbol.scale.x=-1;
+      slowdownPanel(symbol,'warning-bend',black,0,0,.02,()=>{
+        const shape=new T.Shape();
+        shape.moveTo(-.38,-.43);shape.lineTo(-.38,.02);
+        shape.quadraticCurveTo(-.38,.66,.50,.66);
+        shape.lineTo(.50,.42);shape.quadraticCurveTo(-.14,.42,-.14,.02);
+        shape.lineTo(-.14,-.43);shape.closePath();
+        return shape;
+      });
+    }else if(type==='tunnel'){
+      slowdownPanel(symbol,'warning-tunnel',black,0,0,.02,()=>{
+        const shape=new T.Shape();
+        shape.moveTo(-.65,-.43);shape.lineTo(-.65,-.02);
+        shape.absarc(0,-.02,.65,Math.PI,0,true);
+        shape.lineTo(.65,-.43);shape.lineTo(.37,-.43);shape.lineTo(.37,-.02);
+        shape.absarc(0,-.02,.37,0,Math.PI,false);
+        shape.lineTo(-.37,-.43);shape.closePath();
+        return shape;
+      });
+    }else if(type==='hill'||type==='downhill'){
+      if(type==='downhill')symbol.scale.x=-1;
+      slowdownPanel(symbol,'warning-slope',black,0,0,.02,()=>{
+        const shape=new T.Shape();
+        shape.moveTo(-.72,-.43);shape.lineTo(.71,-.43);shape.lineTo(.52,.34);shape.closePath();
+        return shape;
+      });
+    }else if(type==='level-crossing'){
+      if(road){
+        plainBox(symbol,.52,1.24,.04,black,0,.14,0);
+        for(const [y,color] of [[.52,0xe32633],[.14,0xf4ba3a],[-.24,0x238744]])
+          cyl(symbol,.125,.036,color,0,y,.03,'z');
+      }else{
+        for(const x of [-.6,.6])stroke(x,-.45,x,.25);
+        for(const y of [-.24,.09])stroke(-.6,y,.6,y);
+        stroke(-.48,-.23,-.11,.09);stroke(.08,-.23,.45,.09);
+      }
+    }else{
+      const car=plainBox(symbol,.6,.39,.04,black,0,.31,0);
+      car.rotation.z=-.23;
+      for(const x of [-.21,.21])plainBox(car,.11,.19,.04,black,x,-.18,0);
+      for(const x of [-.27,.27]){
+        stroke(x,.08,x+.14,-.11,.09);
+        stroke(x+.14,-.11,x-.10,-.31,.09);
+        stroke(x-.10,-.31,x-.02,-.46,.09);
+      }
+    }
+  }
+  function buildSlowdownSigns(core,course,opponent,world,race,groundHeight){
+    for(const [who,lane,id] of [['player',0,race?.playerId||'thomas'],['rival',core.ROAD_LANE,opponent]]){
+      const type=core.character(id).vehicleType;
+      if(type==='air')continue;
+      const sections=race?core.getTravelSections(race,who):core.COURSES[course].sections;
+      for(const section of sections.filter(s=>s.cap<1)){
+        // Keep the board visible ahead of the tunnel portal or nearby flight clouds.
+        const tunnelSetback=race?.playerId==='harold'?36:13;
+        const distance=section.start-(section.type==='tunnel'?tunnelSetback/core.WORLD_SCALE:0);
+        const side=lane-5.8;
+        const p=route(core,course,distance,side),sign=new T.Group();
+        sign.name='slowdown-sign';
+        sign.userData={corridor:who,sectionId:section.id,hazard:section.type};
+        sign.position.set(p.x,groundHeight(distance,side),p.z);
+        // The sign faces the three-quarter camera from the far verge.
+        sign.rotation.y=p.heading+PI*.44;
+        world.add(sign);
+        plainBox(sign,.19,4.6,.2,0x858e8f,0,2.25,-.09,'slowdown-sign-post');
+        slowdownPanel(sign,'warning-triangle-red',0xcb1725,0,4.04,.016,()=>warningTriangle(3.72,3.22));
+        slowdownPanel(sign,'warning-triangle-white',0xfffdf5,0,4.04,.026,()=>warningTriangle(2.78,2.41));
+        warningSymbol(sign,section.type,type==='road');
+        box(sign,4.93,1.14,.10,0xfffdf5,0,2.29,0,'slowdown-plate-rim');
+        box(sign,4.77,.98,.08,0xb91624,0,2.29,.053,'slowdown-plate');
+        const lettering=new T.Mesh(reduceSpeedLetterGeometry(),new T.MeshBasicMaterial({color:0xfffdf5}));
+        lettering.name='reduce-speed-lettering';
+        lettering.userData.text=reduceSpeedText;
+        add(sign,lettering,0,2.29,.107);
+      }
+    }
+  }
   function harbour(core,course,world) {
     const p=route(core,course,core.COURSES[course].length*.4,-38),g=new T.Group();g.name='harbour';add(world,g,p.x,-1.25,p.z);g.rotation.y=p.heading;
     plainBox(g,34,.15,80,0x79bed1,0,0,0,'harbour-water');
@@ -59495,6 +59627,7 @@ exports.createCanvasElement = createCanvasElement;
     for(const section of course.sections) {
       if(section.type==='tunnel')tunnel(core,courseId,world,section,opponent,race?.playerId||'thomas');
     }
+    buildSlowdownSigns(core,courseId,opponent,world,race,lakeside.groundHeight);
     flightWorld(core,courseId,world,race);
     const objects=buildRaceObjects(core,world);
     if(courseId==='harbour')harbour(core,courseId,world);
